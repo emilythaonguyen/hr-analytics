@@ -8,18 +8,10 @@ import seaborn as sns
 df_employee = pd.read_csv('Employee.csv')
 df_performance = pd.read_csv('PerformanceRating.csv')
 
-# Check the columns to identify a join key
-print("Employee Columns:", df_employee.columns.tolist())
-print("Performance Columns:", df_performance.columns.tolist())
-
 # Merge datasets
 df_combined = pd.merge(df_employee, df_performance, on='EmployeeID')
 print(df_combined.shape)
 df_combined.head()
-
-# Display columns
-df_combined.info()
-df_combined.describe(include='all')
 
 # Missing values
 print(df_combined.isnull().sum())
@@ -70,103 +62,94 @@ df_combined = df_combined.drop(drop_columns, axis=1)
 # Save cleaned data
 df_combined.to_csv('cleaned_employee_data.csv', index=False)
 
-
 # EDA
 # Set visual style
-sns.set(style='whitegrid', palette='Set2')
+sns.set(style='whitegrid', palette='dark')
 plt.rcParams['figure.figsize'] = (10, 6)
 
 # Load the dataset
 df = df_combined.copy()
 
-# Attrition Count
-print("\nAttrition Value Counts:\n", df['Attrition'].value_counts())
+print(df.shape)
+df.info()
+df.describe()
 
+# Create function to print out basic data stats 
+# for qualitative variables
+def qual_summary(df, column):
+    """
+    Prints the count and percentage of each category in the specified column.
+    Parameters: 
+    df (DataFrame): The DataFrame containing the data.
+    column (str): The name of the column to summarize.
+    """
+    total = len(df)
+    counts = df[column].value_counts()
+    percentages = counts / total * 100
+
+    print(f"\nColumn: {column}")
+    for category, count in counts.items():
+        print(f"{category}: {count} ({percentages[category]:.2f}%)")
+
+# Same concept but for qualitative variables
+def quant_summary(df, column):
+    """
+    Prints summary stats for a numeric column:
+    (mean, median, mode, min, max, and range)
+
+    Parameters:
+    df (DataFrame): The DataFrame containing the data.
+    column (str): The name of the numeric column to summarize.
+    """
+    series = df[column].dropna() # for missing values
+    mean = series.mean()
+    median = series.median()
+    mode = series.mode().values[0]
+    min_val = series.min()
+    max_val = series.max()
+    range_val = max_val - min_val
+    print(f"\nSummary of '{column}:")
+    print(f"Mean: {mean:.2f}")
+    print(f"Median: {median}")
+    print(f"Mode: {mode}")
+    print(f"Min: {min_val}")
+    print(f"Max: {max_val}")
+    print(f"Range: {range_val}")
+
+# Attrition Count
 sns.countplot(x='Attrition', data=df)
 plt.title('Employee Attrition Count')
 plt.show()
+qual_summary(df, 'Attrition')
 
 # Distribution of Age
 sns.histplot(df['Age'], kde=True)
 plt.title('Age Distribution')
 plt.show()
+quant_summary(df, 'Age')
+
+# Gender Count
+sns.countplot(x='Gender', data=df)
+plt.title('Employee Gender Count')
+plt.show()
+qual_summary(df, 'Gender')
 
 # Department Count
 sns.countplot(x='Department', data=df)
 plt.title('Department Count')
 plt.show()
+qual_summary(df, 'Department')
+
+# 
 
 # Distribution of Salary
 sns.histplot(df['Salary'], bins=20, kde=True)
 plt.title('Distribution of Salary')
 plt.show()
+quant_summary(df, 'Salary')
 
 # Distribution of Hire Date
 sns.histplot(df['HireDate'], bins=20, kde=True)
 plt.title('Distribution of Hire Date')
 plt.show()
-
-
-# Attrition vs Department
-sns.countplot(x='Department', hue='Attrition', data=df)
-plt.title('Attrition by Department')
-plt.xticks(rotation=45)
-plt.show()
-
-# Attrition vs Gender
-sns.countplot(x='Gender', hue='Attrition', data=df)
-plt.title('Attrition by Gender')
-plt.xticks(rotation=45)
-plt.show()
-
-# Attrition vs Education Level
-sns.countplot(x='Education', hue='Attrition', data=df)
-plt.title('Attrition by Education')
-plt.xticks(rotation=45)
-plt.show()
-
-# Attrition vs OverTime
-sns.countplot(x='OverTime', hue='Attrition', data=df)
-plt.title('Attrition by Overtime')
-plt.xticks(rotation=45)
-plt.show()
-
-# Attrition vs Salary
-g = sns.FacetGrid(df, col='Attrition', height=4, aspect=1.2)
-g.map(sns.histplot, 'Salary', bins=20, kde=True, color='skyblue')
-g.set_axis_labels("Salary", "Count")
-plt.suptitle('Salary Distribution by Attrition', y=1.05)
-plt.show()
-
-# Attrition vs Job Satisfaction
-sns.countplot(x='JobSatisfaction', hue='Attrition', data=df)
-plt.title('Attrition by Job Satisfaction')
-plt.xlabel('Job Satisfaction (1 = Very Dissatisfied, 5 = Very Satisfied)')
-plt.ylabel('Number of Employees')
-plt.legend(title='Attrition', labels=['Stayed', 'Left'])
-plt.show()
-
-# Attrition vs Relationship Satisfaction
-sns.countplot(x='RelationshipSatisfaction', hue='Attrition', data=df)
-plt.title('Attrition by Relationship Satisfaction')
-plt.xlabel('Relationship Satisfaction (1 = Very Dissatisfied, 5 = Very Satisfied)')
-plt.ylabel('Number of Employees')
-plt.legend(title='Attrition', labels=['Stayed', 'Left'])
-plt.show()
-
-# Attrition vs Work Life Balance
-sns.countplot(x='WorkLifeBalance', hue='Attrition', data=df)
-plt.title('Attrition vs Work Life Balance')
-plt.xlabel('WorkLifeBalance')
-plt.ylabel('Number of Employees')
-plt.legend(title="Attrition", labels=['Stayed', 'Left'])
-plt.show()
-
-# Attrition vs HireDate
-g = sns.FacetGrid(df, col='Attrition', height=4, aspect=1.2)
-g.map(sns.histplot, 'HireDate', bins=20, kde=True, color='skyblue')
-g.set_axis_labels("HireDate", "Count")
-plt.suptitle('HireDate by Attrition', y=1.05)
-plt.show()
-
-# 
+quant_summary(df, 'HireDate')
