@@ -1,8 +1,8 @@
 import pandas as pd
-
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from scipy.stats import skew, kurtosis, normaltest, probplot
 
 # Load Dataset
 df_employee = pd.read_csv('Employee.csv')
@@ -42,13 +42,11 @@ for col in cols_to_convert:
 
 # convert remaining categorical columns
 categorical_cols = ['BusinessTravel', 'Department', 'State', 'Ethnicity', 'EducationField', 'JobRole', 
-                    'MaritalStatus', 'StockOptionLevel'
+                    'MaritalStatus', 'StockOptionLevel', 'TrainingOpportunitiesWithinYear',
+                    'TrainingOpportunitiesTaken'
                     ]
 for col in categorical_cols:
     df_combined[col] = df_combined[col].astype('category')
-
-# one-hot encode categorical variables
-df_encoded = pd.get_dummies(df_combined, drop_first=True)
 
 # Date columns
 df_combined['HireDate'] = pd.to_datetime(df_combined['HireDate'])
@@ -74,82 +72,126 @@ print(df.shape)
 df.info()
 df.describe()
 
-# Create function to print out basic data stats 
-# for qualitative variables
-def qual_summary(df, column):
+# Function to print out summary for qualitative variables 
+# and proportion along w/plots.
+def ql_stats(df, col):
     """
-    Prints the count and percentage of each category in the specified column.
+    Prints the summary and percentage of each category 
+    in the specified column w/count plots.
+
     Parameters: 
     df (DataFrame): The DataFrame containing the data.
-    column (str): The name of the column to summarize.
+    col (str): The name of the column to summarize.
     """
-    total = len(df)
-    counts = df[column].value_counts()
-    percentages = counts / total * 100
+    print(f"\n--- Categorical Summary: {col} ---")
+    counts = df[col].value_counts(dropna=False)
+    percentages = df[col].value_counts(normalize=True, dropna=False) * 100
 
-    print(f"\nColumn: {column}")
-    for category, count in counts.items():
-        print(f"{category}: {count} ({percentages[category]:.2f}%)")
+    summary = pd.DataFrame({
+        'Count': counts,
+        'Percentages': percentages.round(2)
+    })
+    print(summary)
+    print(f"Unique categories: {df[col].nunique(dropna=False)}")
+    print(f"Most frequent: {df[col].mode()[0]}")
 
-# Same concept but for qualitative variables
-def quant_summary(df, column):
+    sns.countplot(x=col, data=df)
+    plt.title(f'Distribution of {col}')
+    plt.xticks(rotation=45, ha='right')
+    plt.show()
+
+# Same concept but for quantitative variables
+def qn_stats(df, col):
     """
-    Prints summary stats for a numeric column:
-    (mean, median, mode, min, max, and range)
+    Prints out summary for quantitative columns and creates 
+    histogram + KDE plots.
 
     Parameters:
     df (DataFrame): The DataFrame containing the data.
-    column (str): The name of the numeric column to summarize.
+    col (str): The name of the numeric column to summarize.
     """
-    series = df[column].dropna() # for missing values
-    mean = series.mean()
-    median = series.median()
-    mode = series.mode().values[0]
-    min_val = series.min()
-    max_val = series.max()
-    range_val = max_val - min_val
-    print(f"\nSummary of '{column}:")
-    print(f"Mean: {mean:.2f}")
-    print(f"Median: {median}")
-    print(f"Mode: {mode}")
-    print(f"Min: {min_val}")
-    print(f"Max: {max_val}")
-    print(f"Range: {range_val}")
+    print(f"\n--- Numerical Summary: {col} ---")
+    desc = df[col].describe()
+    print(desc)
 
-# Attrition Count
-sns.countplot(x='Attrition', data=df)
-plt.title('Employee Attrition Count')
-plt.show()
-qual_summary(df, 'Attrition')
+    print(f"Mode: {df[col].mode()[0]}")
+    print(f"Skewness: {skew(df[col].dropna()):.2f}")
+    print(f"Kurtosis: {kurtosis(df[col].dropna()):.2f}")
+    
+    # Histogram + KDE
+    sns.histplot(df[col], kde=True, bins=20)
+    plt.title(f"Distribution of {col}")
+    plt.xlabel(col)
+    plt.ylabel('Frequency')
+    plt.show()
 
-# Distribution of Age
-sns.histplot(df['Age'], kde=True)
-plt.title('Age Distribution')
-plt.show()
-quant_summary(df, 'Age')
+    # Normality Test
+    stat, p=normaltest(df[col])
+    print(f"\nD'Agostino and Pearson Test:")
+    print(f" Statistic = {stat:.4f}, p-value = {p:.4f}")
+    if p < 0.05:
+        print("Data is not normally distributed.")
+    else:
+        print("Data is normally distributed.")
 
-# Gender Count
-sns.countplot(x='Gender', data=df)
-plt.title('Employee Gender Count')
-plt.show()
-qual_summary(df, 'Gender')
+    # QQ Plot
+    plt.figure(figsize=(6,6))
+    probplot(df[col], dist='norm', plot=plt)
+    plt.title(f'QQ-Plot of {col}')
+    plt.xlabel("Theoretical Quantiles")
+    plt.ylabel('Sample Quantiles')
+    plt.grid(True)
+    plt.show()
 
-# Department Count
-sns.countplot(x='Department', data=df)
-plt.title('Department Count')
-plt.show()
-qual_summary(df, 'Department')
+# Same thing but with datetime columns
+def dt_stats(df, col):
+    """
+    Summarizes datetime columns and plots time series trends.
+    
+    Parameters:
+    df (DataFrame): The DataFrame containing the data.
+    col (str): The name of the numeric column to summarize.
+    """
+    print(f"\n--- Datetime Summary: {col} ---")
+    print(f"Min date: {df[col].min()}")
+    print(f"Max date: {df[col].max()}")
+    print(f"Unique dates: {df[col].nunique(dropna=False)}")
 
-# 
+    # Monthly counts
+    dt_monthly = df.set_index(col).resample('M').size()
+    plt.figure(figsize=(14,7))
+    dt_monthly.plot(marker='o')
+    plt.title(f"Monthly count of {col}")
+    plt.xlabel("Month")
+    plt.ylabel("Count")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
 
-# Distribution of Salary
-sns.histplot(df['Salary'], bins=20, kde=True)
-plt.title('Distribution of Salary')
-plt.show()
-quant_summary(df, 'Salary')
+    # Yearly counts
+    dt_yearly = df.set_index(col).resample('Y').size()
+    plt.figure(figsize=(14, 7))
+    dt_yearly.plot(marker='o')
+    plt.title(f"Yearly Count of {col}")
+    plt.xlabel("Year")
+    plt.ylabel("Count")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.show()
 
-# Distribution of Hire Date
-sns.histplot(df['HireDate'], bins=20, kde=True)
-plt.title('Distribution of Hire Date')
-plt.show()
-quant_summary(df, 'HireDate')
+# Drop Employee ID from the columns
+df = df.drop(columns=['EmployeeID'])
+
+# Temporarily turns Attrition and OverTime variables as categories
+df['Attrition'] = df['Attrition'].astype('category')
+df['OverTime'] = df['OverTime'].astype('category')
+
+# Loop through all columns and run stats, tests, and plots
+for col in df.columns:
+    if pd.api.types.is_datetime64_any_dtype(df[col]):
+        dt_stats(df, col)
+    elif pd.api.types.is_numeric_dtype(df[col]):
+        qn_stats(df, col)
+    else:
+        ql_stats(df, col)
+
