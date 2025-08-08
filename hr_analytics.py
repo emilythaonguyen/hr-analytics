@@ -97,7 +97,6 @@ def ql_stats(df, col):
 
     sns.countplot(x=col, data=df)
     plt.title(f'Distribution of {col}')
-    plt.xticks(rotation=45, ha='right')
     plt.show()
 
 # Same concept but for quantitative variables
@@ -113,6 +112,12 @@ def qn_stats(df, col):
     print(f"\n--- Numerical Summary: {col} ---")
     desc = df[col].describe()
     print(desc)
+
+    # Boxplot
+    sns.boxplot(x=df[col])
+    plt.title(f"Boxplot of {col}")
+    plt.xlabel(col)
+    plt.show()
 
     print(f"Mode: {df[col].mode()[0]}")
     print(f"Skewness: {skew(df[col].dropna()):.2f}")
@@ -194,4 +199,3 @@ for col in df.columns:
         qn_stats(df, col)
     else:
         ql_stats(df, col)
-
