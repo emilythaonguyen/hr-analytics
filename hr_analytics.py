@@ -52,6 +52,15 @@ for col in categorical_cols:
 df_combined['HireDate'] = pd.to_datetime(df_combined['HireDate'])
 df_combined['ReviewDate'] = pd.to_datetime(df_combined['ReviewDate'])
 
+# Fixing 'Marketing' typo
+df_combined['EducationField'] = df_combined['EducationField'].str.strip().str.title()
+
+# Merge Marketing variants
+df_combined['EducationField'] = df_combined['EducationField'].replace({
+    'Marketing ': 'Marketing',
+    'Marketting': 'Marketing' 
+})
+
 # Drop unused columns
 drop_columns = ['FirstName', 'LastName', 'PerformanceID']
 
@@ -161,17 +170,6 @@ def dt_stats(df, col):
     print(f"Min date: {df[col].min()}")
     print(f"Max date: {df[col].max()}")
     print(f"Unique dates: {df[col].nunique(dropna=False)}")
-
-    # Monthly counts
-    dt_monthly = df.set_index(col).resample('M').size()
-    plt.figure(figsize=(14,7))
-    dt_monthly.plot(marker='o')
-    plt.title(f"Monthly count of {col}")
-    plt.xlabel("Month")
-    plt.ylabel("Count")
-    plt.grid(True)
-    plt.tight_layout()
-    plt.show()
 
     # Yearly counts
     dt_yearly = df.set_index(col).resample('Y').size()
