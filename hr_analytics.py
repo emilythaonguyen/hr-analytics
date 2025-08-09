@@ -62,7 +62,7 @@ df_combined.to_csv('cleaned_employee_data.csv', index=False)
 
 # EDA
 # Set visual style
-sns.set(style='whitegrid', palette='dark')
+sns.set(style='whitegrid', palette='hls')
 plt.rcParams['figure.figsize'] = (10, 6)
 
 # Load the dataset
