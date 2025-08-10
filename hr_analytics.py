@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 from scipy.stats import skew, kurtosis, normaltest, probplot
+import os
 
 # Load Dataset
 df_employee = pd.read_csv('Employee.csv')
@@ -104,8 +105,21 @@ def ql_stats(df, col):
     print(f"Unique categories: {df[col].nunique(dropna=False)}")
     print(f"Most frequent: {df[col].mode()[0]}")
 
+    plt.figure(figsize=(12, 6))
     sns.countplot(x=col, data=df)
+    
+    if col in ['Ethnicity', 'EducationField', 'JobRole']:
+        # rotate to make space for x labels
+        plt.xticks(rotation=45, ha='right')
+        plt.subplots_adjust(bottom=0.3)
+    else:
+        plt.tight_layout()
+    
+    # Save plot as JPG
     plt.title(f'Distribution of {col}')
+    filename = f'Distribution_of_{col}.jpg'
+    plt.savefig(filename, dpi=300, bbox_inches='tight')
+
     plt.show()
 
 # Same concept but for quantitative variables
@@ -126,8 +140,9 @@ def qn_stats(df, col):
     sns.boxplot(x=df[col])
     plt.title(f"Boxplot of {col}")
     plt.xlabel(col)
+    filename = f"Boxplot_of_{col}.jpg"
+    plt.savefig(filename, dpi=300, bbox_inches='tight')
     plt.show()
-
     print(f"Mode: {df[col].mode()[0]}")
     print(f"Skewness: {skew(df[col].dropna()):.2f}")
     print(f"Kurtosis: {kurtosis(df[col].dropna()):.2f}")
@@ -137,6 +152,8 @@ def qn_stats(df, col):
     plt.title(f"Distribution of {col}")
     plt.xlabel(col)
     plt.ylabel('Frequency')
+    filename = f"Distribution_of_{col}.jpg"
+    plt.savefig(filename, dpi=300, bbox_inches='tight')
     plt.show()
 
     # Normality Test
@@ -155,6 +172,8 @@ def qn_stats(df, col):
     plt.xlabel("Theoretical Quantiles")
     plt.ylabel('Sample Quantiles')
     plt.grid(True)
+    filename = f'QQ-Plot_of_{col}.jpg'
+    plt.savefig(filename, dpi=300, bbox_inches='tight')
     plt.show()
 
 # Same thing but with datetime columns
@@ -188,6 +207,8 @@ def dt_stats(df, col):
     plt.ylabel("Count")
     plt.grid(True)
     plt.tight_layout()
+    filename=f'Yearly_Count_of_{col}.jpg'
+    plt.savefig(filename, dpi=300, bbox_inches='tight')
     plt.show()
 
 # Drop Employee ID from the columns
