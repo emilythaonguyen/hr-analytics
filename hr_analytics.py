@@ -169,7 +169,15 @@ def dt_stats(df, col):
     print(f"\n--- Datetime Summary: {col} ---")
     print(f"Min date: {df[col].min()}")
     print(f"Max date: {df[col].max()}")
+    print(f"Range: {df[col].max() - df[col].min()}")
+    print(f"Median: {df[col].median()}")
+    print(f"Mode: {df[col].mode()[0]}")
     print(f"Unique dates: {df[col].nunique(dropna=False)}")
+
+    #Counts per year
+    year_counts = df[col].dt.year.value_counts().sort_index()
+    print("\nCounts per year:")
+    print(year_counts)
 
     # Yearly counts
     dt_yearly = df.set_index(col).resample('Y').size()
