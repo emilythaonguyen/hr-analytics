@@ -226,3 +226,31 @@ for col in df.columns:
         qn_stats(df, col)
     else:
         ql_stats(df, col)
+
+
+import scipy.stats as stats
+
+def nparametric_tests(df, target='Attrition'):
+    results = []
+
+    for col in df.columns:
+        if col == target:
+            continue # skip target column
+        
+        if pd.api.types.is_numeric_dtype(df[col]):
+            # Mann-Whitney U test for numerical vs binary catgorical target
+            group1 = df[df[target]==0][col].dropna()
+            group2 = df[df[target]==1][col].dropna()
+            stat, p = stats.mannwhitneyu(group1, group2, alternative='two-sided')
+            results.append({'Variable': col, 'Test': 'Mann-Whitney U', 'Statistic': stat, 'p-value': p})
+        
+        elif pd.api.types.is_categorical_dtype(df[col]) or df[col].dtype == object:
+            # Chi-square test for categorical variables/target
+            contigency_table = pd.crosstab(df[col], df[target])
+            chi2, p, dof, ex = stats.chi2_contigency(contigency_table)
+            results.append({'Variable': col, 'Test': 'Chi-square', 'Statistic': chi2, 'p-value': p})
+    
+    return pd.DataFrame(results).sort_values('p-value')
+
+attrition_results = nparametric_tests(df)
+print(attrition_results)
