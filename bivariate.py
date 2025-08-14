@@ -1,4 +1,5 @@
 import pandas as pd
+from pandas.api.types import CategoricalDtype
 import scipy.stats as stats
 
 
@@ -17,6 +18,37 @@ def nparametric_tests(df, target='Attrition'):
         list: A list of dictionaries containing the variable name, test type, test statistic, and p-value for each variable.
     """
     results = []
+    # recast types for nonparametric testing
+    # ordinal columns
+    levels = CategoricalDtype(categories=[1,2,3,4,5], ordered=True)
+    ordinal_cols = [
+    'EnvironmentSatisfaction', 
+    'JobSatisfaction', 
+    'RelationshipSatisfaction', 
+    'WorkLifeBalance', 
+    'SelfRating', 
+    'ManagerRating', 
+    'Education']
+
+    for col in ordinal_cols:
+        df[col] = df[col].astype(levels)
+    
+    # retyping the non-ordinal category columns
+    categorical_cols = ['BusinessTravel', 'Department', 'State', 'Ethnicity', 'EducationField', 
+        'JobRole', 'MaritalStatus', 'StockOptionLevel', 'TrainingOpportunitiesWithinYear',
+        'TrainingOpportunitiesTaken']
+    
+    for col in categorical_cols:
+        df[col] = df[col].astype('category')
+
+    # date columns
+    df['HireDate'] = pd.to_datetime(df['HireDate'])
+    df['ReviewDate'] = pd.to_datetime(df['ReviewDate'])
+
+    # Temporarily turns Attrition and OverTime variables as categories
+    df['Attrition'] = df['Attrition'].astype('category')
+    df['OverTime'] = df['OverTime'].astype('category')
+
 
     for col in df.columns:
         if col == target:
