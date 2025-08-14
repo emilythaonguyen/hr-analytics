@@ -1,4 +1,6 @@
+import pandas as pd
 import scipy.stats as stats
+
 
 def nparametric_tests(df, target='Attrition'):
     """
@@ -35,10 +37,6 @@ def nparametric_tests(df, target='Attrition'):
     
     return pd.DataFrame(results)
 
-attrition_results = nparametric_tests(df)
-print(attrition_results)
-
-# use attrition_results to print out interpretations
 def interpret_results(variable, test_name, statistic, p_value, alpha=0.05):
     """
     Prints out the interpretation and stats in a readable format.
@@ -54,7 +52,7 @@ def interpret_results(variable, test_name, statistic, p_value, alpha=0.05):
     print(f"Test: {test_name}")
     print(f"Statistic: {statistic:.4g}")
     print(f"p_value: {p_value:.4g}")
-    print(f"Significance level: {alpha} (95% confidence)")
+    print(f"Significance level: {alpha} ({(1-alpha)*100}% confidence)")
     print(f"Null hypothesis (H0): There is no relationship/difference between {variable} and Attrition.")
     print(f"Alternative hypothesis (Ha): There is a relationship/difference between {variable} and Attrition.")
     if p_value < alpha:
@@ -62,26 +60,23 @@ def interpret_results(variable, test_name, statistic, p_value, alpha=0.05):
     else:
         print(f"\nSince the p-value is greater than or equal to {alpha}, we fail to reject the null hypothesis and conclude that there is not enough evidence to say there is a statistically significant relationship/difference between {variable} and Attrition.\n")
 
-for idx, row in attrition_results.iterrows():
-    interpret_results(row['Variable'], row['Test'], row['Statistic'], row['p-value'])
+def significant_list(results_df, alpha=0.05, save=True):
+    """
+    Prints a quick summary of significant and non-significant variables
+    Optionally saves the lists to CSV files.
+    """
+    significant = results_df[results_df['p-value'] < alpha]['Variable'].tolist()
+    nonsignificant = results_df[results_df['p-value'] >= alpha]['Variable'].tolist()
 
+    print("\nQuick Summary:")
+    print("--- Significant Variables ---")
+    for var in significant:
+        print(var)
+    print("--- Non-Significant Variables ---")
+    for var in nonsignificant:
+        print(var)
 
-# check which ones are nonsignificant and significant
-significant_vars = []
-nonsignificant_vars = []
-
-for _, row in attrition_results.iterrows():
-    variable = row['Variable']
-    p_value = row['p-value']
-    if p_value < 0.05:
-        significant_vars.append(variable)
-    else:
-        nonsignificant_vars.append(variable)
-
-print('Quick Summary:')
-print("---Significant Variables:---")
-for var in significant_vars:
-    print(f"{var}")
-print("---Non-Significant Variables:---")
-for var in nonsignificant_vars:
-    print(f"{var}")
+    if save:
+        pd.DataFrame({'Significant Variables': significant}).to_csv('significant_variables.csv', index=False)
+        pd.DataFrame({'Non-Significant Variables': nonsignificant}).to_csv('nonsignificant_variables.csv', index=False)
+        print("\nCSV files saved: significant_variables.csv & nonsignificant_variables.csv")
