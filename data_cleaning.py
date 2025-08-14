@@ -1,3 +1,4 @@
+# import libraries
 import pandas as pd
 from pandas.api.types import CategoricalDtype
 
@@ -24,7 +25,7 @@ def clean_data():
     for col in cols_to_convert:
         df[col] = df[col].astype(levels)
 
-    # convert categorical columns
+    # convert the rest of the categorical columns
     categorical_cols = [
         'BusinessTravel', 'Department', 'State', 'Ethnicity', 'EducationField', 
         'JobRole', 'MaritalStatus', 'StockOptionLevel', 'TrainingOpportunitiesWithinYear',
@@ -33,18 +34,19 @@ def clean_data():
     for col in categorical_cols:
         df[col] = df[col].astype('category')
 
-    # date columns
+    # make sure date columns are datetime
     df['HireDate'] = pd.to_datetime(df['HireDate'])
     df['ReviewDate'] = pd.to_datetime(df['ReviewDate'])
 
     # fix typos in EducationField
+    # realized this error when i was running the summary for education field
     df['EducationField'] = df['EducationField'].str.strip().str.title()
     df['EducationField'] = df['EducationField'].replace({
         'Marketing ': 'Marketing',
         'Marketting': 'Marketing'
     })
 
-    # drop unused columns
+    # drop unused columns 
     df = df.drop(['FirstName', 'LastName', 'PerformanceID'], axis=1)
     
 

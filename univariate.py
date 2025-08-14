@@ -4,29 +4,33 @@ import seaborn as sns
 from scipy.stats import skew, kurtosis, normaltest, probplot
 import os
 
-
+# set the style for all plots
 sns.set(style='whitegrid', palette='hls')
 plt.rcParams['figure.figsize'] = (10, 6)
 
-# Function to print out summary for qualitative variables 
+# function to print out summary for qualitative variables 
 # and proportion along w/plots.
 def ql_stats(df, col):
     """
-    Prints the summary and percentage of each category 
-    in the specified column w/count plots.
+    Prints the summary and proportion of each category 
+    in the column. Then plots a count plot for visualization.
 
-    Parameters: 
-    df (DataFrame): The DataFrame containing the data.
-    col (str): The name of the column to summarize.
+    Parameters
+    ---------- 
+    df : DataFrame
+        The DataFrame containing the data
+    col : str
+        The name of the column we want to 
+    
+    Returns
+    -------
+    None
     """
-    # make directory for column
-    dir = f"{col}"
-    os.makedirs(dir, exist_ok=True)
 
-    print(f"\n--- Categorical Summary: {col} ---")
+    # summary
     counts = df[col].value_counts(dropna=False)
     percentages = df[col].value_counts(normalize=True, dropna=False) * 100
-
+    print(f"\n--- Categorical Summary: {col} ---")
     summary = pd.DataFrame({
         'Count': counts,
         'Percentages': percentages.round(2)
@@ -35,21 +39,22 @@ def ql_stats(df, col):
     print(f"Unique categories: {df[col].nunique(dropna=False)}")
     print(f"Most frequent: {df[col].mode()[0]}")
 
+    # make directory for count plots
+    dir = "plots/countplots"
+    os.makedirs(dir, exist_ok=True)
+    # count plot
     plt.figure(figsize=(12, 6))
     sns.countplot(x=col, data=df)
-    
     if col in ['Ethnicity', 'EducationField', 'JobRole']:
         # rotate to make space for x labels
         plt.xticks(rotation=45, ha='right')
         plt.subplots_adjust(bottom=0.3)
     else:
         plt.tight_layout()
-    
     plt.title(f'Distribution of {col}')
     # save the plot to the new directory
     filename = os.path.join(dir, f'Distribution_of_{col}.jpg')
     plt.savefig(filename, dpi=300, bbox_inches='tight')
-
     plt.show()
 
 # Same concept but for quantitative variables
@@ -62,14 +67,14 @@ def qn_stats(df, col):
     df (DataFrame): The DataFrame containing the data.
     col (str): The name of the numeric column to summarize.
     """
-    # make directory for column
-    dir = f"{col}"
-    os.makedirs(dir, exist_ok=True)
-
     # summary
     print(f"\n--- Numerical Summary: {col} ---")
     desc = df[col].describe()
     print(desc)
+
+    # make directory for boxplots
+    dir = "plots/boxplots"
+    os.makedirs(dir, exist_ok=True)
 
     # Boxplot
     sns.boxplot(x=df[col])
@@ -82,6 +87,9 @@ def qn_stats(df, col):
     print(f"Skewness: {skew(df[col].dropna()):.2f}")
     print(f"Kurtosis: {kurtosis(df[col].dropna()):.2f}")
     
+    # make directory for histograms
+    dir = "plots/histograms"
+    os.makedirs(dir, exist_ok=True)
     # Histogram + KDE
     sns.histplot(df[col], kde=True, bins=20)
     plt.title(f"Distribution of {col}")
@@ -100,6 +108,9 @@ def qn_stats(df, col):
     else:
         print("Data is normally distributed.")
 
+    # make directory for QQ-plots
+    dir = "plots/qq_plots"
+    os.makedirs(dir, exist_ok=True)
     # QQ Plot
     plt.figure(figsize=(6,6))
     probplot(df[col], dist='norm', plot=plt)
@@ -120,10 +131,6 @@ def dt_stats(df, col):
     df (DataFrame): The DataFrame containing the data.
     col (str): The name of the numeric column to summarize.
     """
-    # make directory for column
-    dir = f"{col}"
-    os.makedirs(dir, exist_ok=True)
-
     print(f"\n--- Datetime Summary: {col} ---")
     print(f"Min date: {df[col].min()}")
     print(f"Max date: {df[col].max()}")
@@ -137,6 +144,9 @@ def dt_stats(df, col):
     print("\nCounts per year:")
     print(year_counts)
 
+    # make directory for time series plots
+    dir = "plots/time_series_plots"
+    os.makedirs(dir, exist_ok=True)
     # Yearly counts
     dt_yearly = df.set_index(col).resample('Y').size()
     plt.figure(figsize=(14, 7))
