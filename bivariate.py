@@ -3,21 +3,35 @@ from pandas.api.types import CategoricalDtype
 import scipy.stats as stats
 
 
-def nparametric_tests(df, target='Attrition'):
+def nparametric_tests(df, target='Attrition', alpha=0.05):
     """
-    Run nonparametric tests statistical tests between a target variable and all other variables in the DataFrame.
-
-    For numeric variables, performs the Mann-Whitney U test to compare distributions between target groups.
-    For categorical variables, preforms the Chi-square test of independence to assess association with the target.
+    Run nonparametric statistical tests between a binary target variable
+    and all other variables in the DataFrame.
     
-    Parameters:
-        df (pd.DataFrame): the DataFrame that contains the data.
-        target (str): The name of the target variable to test against other columns.
+    For numeric variables:
+        - Mann-Whitney U test (continuous/ordinal vs binary target)
+    For categorical variables:
+        - Chi-square test of independence
+
+    Parameters
+    ----------
+    df : DataFrame
+        the DataFrame that contains the data.
+    target : str, default='Attrition'
+        The binary target variable to test against.
+    alpha : float
+        Significance level threshold.
         
-    Returns: 
-        list: A list of dictionaries containing the variable name, test type, test statistic, and p-value for each variable.
+    Returns
+    -------
+    DataFrame
+        Summary of variables, tests used, test statistics, and p-values
     """
     results = []
+
+    # drop EmployeeID from the dataset
+    df = df.drop(columns=['EmployeeID'])
+    
     # recast types for nonparametric testing
     # ordinal columns
     levels = CategoricalDtype(categories=[1,2,3,4,5], ordered=True)
@@ -41,46 +55,62 @@ def nparametric_tests(df, target='Attrition'):
     for col in categorical_cols:
         df[col] = df[col].astype('category')
 
-    # date columns
-    df['HireDate'] = pd.to_datetime(df['HireDate'])
-    df['ReviewDate'] = pd.to_datetime(df['ReviewDate'])
-
-    # Temporarily turns Attrition and OverTime variables as categories
-    df['Attrition'] = df['Attrition'].astype('category')
-    df['OverTime'] = df['OverTime'].astype('category')
-
+    # change date variables to datetime
+    date_cols = ['HireDate', 'ReviewDate']
+    for col in date_cols:
+        df[col] = pd.to_datetime(df[col])
 
     for col in df.columns:
-        if col == target:
+        if col in date_cols or col == target:
             continue # skip target column
         
-        if pd.api.types.is_numeric_dtype(df[col]):
-            # Mann-Whitney U test for numerical vs binary catgorical target
+        if pd.api.types.is_numeric_dtype(df[col]) or \
+            (pd.api.types.is_categorical_dtype(df[col]) and df[col].cat.ordered):
+            # mann-Whitney u test for numerical vs binary catgorical target
             group1 = df[df[target]==0][col].dropna()
             group2 = df[df[target]==1][col].dropna()
             stat, p = stats.mannwhitneyu(group1, group2, alternative='two-sided')
-            results.append({'Variable': col, 'Test': 'Mann-Whitney U', 'Statistic': stat, 'p-value': p})
+            results.append({'Variable': col, 
+                            'Test': 'Mann-Whitney U', 
+                            'Statistic': stat, 
+                            'p-value': p,
+                            'Significant': p < alpha
+                            })
         
         elif pd.api.types.is_categorical_dtype(df[col]) or df[col].dtype == object:
-            # Chi-square test for categorical variables/target
-            contigency_table = pd.crosstab(df[col], df[target])
-            chi2, p, dof, ex = stats.chi2_contingency(contigency_table)
-            results.append({'Variable': col, 'Test': 'Chi-square', 'Statistic': chi2, 'p-value': p})
-    
-    return pd.DataFrame(results)
+            # chi-square test for categorical variables/target
+            contingency_table = pd.crosstab(df[col], df[target])
+            chi2, p, dof, ex = stats.chi2_contingency(contingency_table)
+            results.append({'Variable': col, 
+                            'Test': 'Chi-square', 
+                            'Statistic': chi2, 
+                            'p-value': p,
+                            'Significant': p < alpha
+                            })
+    results_df = pd.DataFrame(results)
+
+    results_df = results_df.sort_values(by='p-value', ascending=True).reset_index(drop=True)
+
+    return results_df
 
 def interpret_results(variable, test_name, statistic, p_value, alpha=0.05):
     """
-    Prints out the interpretation and stats in a readable format.
+    Interpret statistical test results for a given variable.
 
-    Parameters:
-    variable (str): Name of the variable being tested.
-    test_name (str): Name of the statistical test used.
-    statistic (float): Test statistic value.
-    p-value (float): P-value from the test.
-    alpha (float): Significance level threshold (default is 0.05).
+    Parameters
+    ----------
+    variable : str
+        Name of the variable tested
+    test_name : str
+        Name of the statistic test used
+    statistic : float
+        Test statistic value
+    p_value : float
+        p-value from the test
+    alpha : float, default=0.05
+        Significance level threshold.
     """
-    print(f"---{variable}---")
+    print(f"--- {variable} ---")
     print(f"Test: {test_name}")
     print(f"Statistic: {statistic:.4g}")
     print(f"p_value: {p_value:.4g}")
@@ -91,24 +121,3 @@ def interpret_results(variable, test_name, statistic, p_value, alpha=0.05):
         print(f"\nSince the p-value is less than {alpha}, we reject the null hypothesis and conclude that there is a statistically significant relationship/difference between {variable} and Attrition.\n")
     else:
         print(f"\nSince the p-value is greater than or equal to {alpha}, we fail to reject the null hypothesis and conclude that there is not enough evidence to say there is a statistically significant relationship/difference between {variable} and Attrition.\n")
-
-def significant_list(results_df, alpha=0.05, save=True):
-    """
-    Prints a quick summary of significant and non-significant variables
-    Optionally saves the lists to CSV files.
-    """
-    significant = results_df[results_df['p-value'] < alpha]['Variable'].tolist()
-    nonsignificant = results_df[results_df['p-value'] >= alpha]['Variable'].tolist()
-
-    print("\nQuick Summary:")
-    print("--- Significant Variables ---")
-    for var in significant:
-        print(var)
-    print("--- Non-Significant Variables ---")
-    for var in nonsignificant:
-        print(var)
-
-    if save:
-        pd.DataFrame({'Significant Variables': significant}).to_csv('significant_variables.csv', index=False)
-        pd.DataFrame({'Non-Significant Variables': nonsignificant}).to_csv('nonsignificant_variables.csv', index=False)
-        print("\nCSV files saved: significant_variables.csv & nonsignificant_variables.csv")

@@ -3,6 +3,26 @@ import pandas as pd
 from pandas.api.types import CategoricalDtype
 
 def clean_data():
+    """
+    Load, merge, and clean employee and performance datasets, 
+    then save the cleaned dataset to a CSV file
+
+    Steps
+    -----
+    1. Load data from 'Employee.csv' and 'PerfromanceRating.csv'
+    2. Merge datasets on 'EmployeeID'
+    3. Map binary columns ('Yes'/'No' -> 1/0)
+    4. Convert ordinal columns to ordered categorical types
+    5. Convert nominal categorical columns to 'category' dtype
+    6. Convert date columns to datetime
+    7. Fix typos in 'EducationField'
+    8. Drop unused columns
+    9. Save to 'cleaned_employee_data.csv'
+
+    Returns
+    -------
+    None
+    """
     # load the data
     df_employee = pd.read_csv('Employee.csv')
     df_performance = pd.read_csv('PerformanceRating.csv')
