@@ -3,6 +3,19 @@ from pandas.api.types import CategoricalDtype
 from univariate import ql_stats, qn_stats, dt_stats
 
 def run_eda():
+    """
+    Perform exploratory data analysis (EDA) on a dataset.
+    Calls the correct function based on the type of data.
+
+    Parameters
+    ----------
+    df: DataFrame
+        The cleaned dataset to analyze.
+
+    Returns
+    -------
+    None
+    """
     # load the dataset
     df = pd.read_csv('cleaned_employee_data.csv')
 

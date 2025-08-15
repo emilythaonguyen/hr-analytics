@@ -25,7 +25,8 @@ def nparametric_tests(df, target='Attrition', alpha=0.05):
     Returns
     -------
     DataFrame
-        Summary of variables, tests used, test statistics, and p-values
+        Summary of variables, tests used, test statistics, p-values, and significance,
+        sorted from most significant to least significant (by p-values).
     """
     results = []
 
@@ -109,6 +110,10 @@ def interpret_results(variable, test_name, statistic, p_value, alpha=0.05):
         p-value from the test
     alpha : float, default=0.05
         Significance level threshold.
+   
+    Returns
+    -------
+    None
     """
     print(f"--- {variable} ---")
     print(f"Test: {test_name}")
@@ -121,3 +126,4 @@ def interpret_results(variable, test_name, statistic, p_value, alpha=0.05):
         print(f"\nSince the p-value is less than {alpha}, we reject the null hypothesis and conclude that there is a statistically significant relationship/difference between {variable} and Attrition.\n")
     else:
         print(f"\nSince the p-value is greater than or equal to {alpha}, we fail to reject the null hypothesis and conclude that there is not enough evidence to say there is a statistically significant relationship/difference between {variable} and Attrition.\n")
+

@@ -12,15 +12,15 @@ plt.rcParams['figure.figsize'] = (10, 6)
 # and proportion along w/plots.
 def ql_stats(df, col):
     """
-    Prints the summary and proportion of each category 
-    in the column. Then plots a count plot for visualization.
+    Prints the summary and proportion of each category in the selected column,
+    then plot and save a count plot.
 
     Parameters
-    ---------- 
+    ----------
     df : DataFrame
         The DataFrame containing the data
     col : str
-        The name of the column we want to 
+        The name of the categorical column to analyze
     
     Returns
     -------
@@ -42,7 +42,7 @@ def ql_stats(df, col):
     # make directory for count plots
     dir = "plots/countplots"
     os.makedirs(dir, exist_ok=True)
-    # count plot
+    # countplot
     plt.figure(figsize=(12, 6))
     sns.countplot(x=col, data=df)
     if col in ['Ethnicity', 'EducationField', 'JobRole']:
@@ -57,15 +57,22 @@ def ql_stats(df, col):
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     plt.show()
 
-# Same concept but for quantitative variables
+# same concept but for quantitative variables
 def qn_stats(df, col):
     """
-    Prints out summary for quantitative columns and creates 
-    histogram + KDE plots.
-
-    Parameters:
-    df (DataFrame): The DataFrame containing the data.
-    col (str): The name of the numeric column to summarize.
+    Prints out summary for numeric columns, generate 
+    box plots, histograms, QQ plots, and then runs a normality test.
+    
+    Parameters
+    ----------
+    df : DataFrame
+        The DataFrame containing the data
+    col : str
+        The name of the numeric column we want to analyze
+    
+    Returns
+    -------
+    None
     """
     # summary
     print(f"\n--- Numerical Summary: {col} ---")
@@ -76,21 +83,23 @@ def qn_stats(df, col):
     dir = "plots/boxplots"
     os.makedirs(dir, exist_ok=True)
 
-    # Boxplot
+    # boxplot
     sns.boxplot(x=df[col])
     plt.title(f"Boxplot of {col}")
     plt.xlabel(col)
     filename = os.path.join(dir, f"Boxplot_of_{col}.jpg")
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     plt.show()
-    print(f"Mode: {df[col].mode()[0]}")
+    # mode
+    print(f"Mode: {df[col].mode()[0]}") 
+    # skewness + kurtosis
     print(f"Skewness: {skew(df[col].dropna()):.2f}")
     print(f"Kurtosis: {kurtosis(df[col].dropna()):.2f}")
     
-    # make directory for histograms
+    # make directory for histogram
     dir = "plots/histograms"
     os.makedirs(dir, exist_ok=True)
-    # Histogram + KDE
+    # histogram + kde
     sns.histplot(df[col], kde=True, bins=20)
     plt.title(f"Distribution of {col}")
     plt.xlabel(col)
@@ -99,19 +108,19 @@ def qn_stats(df, col):
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     plt.show()
 
-    # Normality Test
+    # normality Test
     stat, p=normaltest(df[col])
     print(f"\nD'Agostino and Pearson Test:")
     print(f" Statistic = {stat:.4f}, p-value = {p:.4f}")
-    if p < 0.05:
+    if p < 0.05: # 95% confidence
         print("Data is not normally distributed.")
     else:
         print("Data is normally distributed.")
 
-    # make directory for QQ-plots
+    # make directory for QQ plot
     dir = "plots/qq_plots"
     os.makedirs(dir, exist_ok=True)
-    # QQ Plot
+    # QQ plot
     plt.figure(figsize=(6,6))
     probplot(df[col], dist='norm', plot=plt)
     plt.title(f'QQ-Plot of {col}')
@@ -122,32 +131,40 @@ def qn_stats(df, col):
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     plt.show()
 
-# Same thing but with datetime columns
+# same thing but with datetime columns
 def dt_stats(df, col):
     """
-    Summarizes datetime columns and plots time series trends.
-    
-    Parameters:
-    df (DataFrame): The DataFrame containing the data.
-    col (str): The name of the numeric column to summarize.
+    Summarize datetime column and generate a yearly count plot.
+        
+    Parameters
+    ----------
+    df : DataFrame
+        The DataFrame containing the data.
+    col: str 
+        The name of the datetime column to summarize.
+
+    Returns
+    -------
+    None
     """
+    # datetime summary
     print(f"\n--- Datetime Summary: {col} ---")
     print(f"Min date: {df[col].min()}")
     print(f"Max date: {df[col].max()}")
     print(f"Range: {df[col].max() - df[col].min()}")
-    print(f"Median: {df[col].median()}")
+    print(f"Median: {df[col].median()}") 
     print(f"Mode: {df[col].mode()[0]}")
     print(f"Unique dates: {df[col].nunique(dropna=False)}")
 
-    #Counts per year
+    #counts per year
     year_counts = df[col].dt.year.value_counts().sort_index()
     print("\nCounts per year:")
     print(year_counts)
 
-    # make directory for time series plots
+    # make directory for time series plot
     dir = "plots/time_series_plots"
     os.makedirs(dir, exist_ok=True)
-    # Yearly counts
+    # yearly counts - time series plot
     dt_yearly = df.set_index(col).resample('Y').size()
     plt.figure(figsize=(14, 7))
     dt_yearly.plot(marker='o')
