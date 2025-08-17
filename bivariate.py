@@ -1,5 +1,4 @@
 import pandas as pd
-from pandas.api.types import CategoricalDtype
 import scipy.stats as stats
 
 
@@ -30,40 +29,9 @@ def nparametric_tests(df, target='Attrition', alpha=0.05):
     """
     results = []
 
-    # drop EmployeeID from the dataset
-    df = df.drop(columns=['EmployeeID'])
-    
-    # recast types for nonparametric testing
-    # ordinal columns
-    levels = CategoricalDtype(categories=[1,2,3,4,5], ordered=True)
-    ordinal_cols = [
-    'EnvironmentSatisfaction', 
-    'JobSatisfaction', 
-    'RelationshipSatisfaction', 
-    'WorkLifeBalance', 
-    'SelfRating', 
-    'ManagerRating', 
-    'Education']
-
-    for col in ordinal_cols:
-        df[col] = df[col].astype(levels)
-    
-    # retyping the non-ordinal category columns
-    categorical_cols = ['BusinessTravel', 'Department', 'State', 'Ethnicity', 'EducationField', 
-        'JobRole', 'MaritalStatus', 'StockOptionLevel', 'TrainingOpportunitiesWithinYear',
-        'TrainingOpportunitiesTaken']
-    
-    for col in categorical_cols:
-        df[col] = df[col].astype('category')
-
-    # change date variables to datetime
-    date_cols = ['HireDate', 'ReviewDate']
-    for col in date_cols:
-        df[col] = pd.to_datetime(df[col])
-
     for col in df.columns:
-        if col in date_cols or col == target:
-            continue # skip target column
+        if pd.api.types.is_datetime64_dtype(df[col]) or col == target:
+            continue # skip target and datetime columns
         
         if pd.api.types.is_numeric_dtype(df[col]) or \
             (pd.api.types.is_categorical_dtype(df[col]) and df[col].cat.ordered):
