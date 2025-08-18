@@ -2,42 +2,42 @@ import pandas as pd
 from pandas.api.types import CategoricalDtype
 from bivariate import nparametric_tests, interpret_results
 from bivariate_viz import bivar_numeric_plot, bivar_nominal_plot, bivar_ordinal_plot, bivar_binary_plot, bivar_datetime_plot
-import seaborn as sns
-import matplotlib.pyplot as plt
+from data_cleaning import clean_data
+
 
 # load the data
-df = pd.read_csv('cleaned_employee_data.csv')
+df = clean_data()
 
-# drop EmployeeID from the dataset
-df = df.drop(columns=['EmployeeID'])
+# # drop EmployeeID from the dataset
+# df = df.drop(columns=['EmployeeID'])
 
-# recast types for nonparametric testing
-# ordinal columns
-levels = CategoricalDtype(categories=[1,2,3,4,5], ordered=True)
-ordinal_cols = [
-'EnvironmentSatisfaction', 
-'JobSatisfaction', 
-'RelationshipSatisfaction', 
-'WorkLifeBalance', 
-'SelfRating', 
-'ManagerRating', 
-'Education']
+# # recast types for nonparametric testing
+# # ordinal columns
+# levels = CategoricalDtype(categories=[1,2,3,4,5], ordered=True)
+# ordinal_cols = [
+# 'EnvironmentSatisfaction', 
+# 'JobSatisfaction', 
+# 'RelationshipSatisfaction', 
+# 'WorkLifeBalance', 
+# 'SelfRating', 
+# 'ManagerRating', 
+# 'Education']
 
-for col in ordinal_cols:
-    df[col] = df[col].astype(levels)
+# for col in ordinal_cols:
+#     df[col] = df[col].astype(levels)
 
-# retyping the non-ordinal category columns
-categorical_cols = ['BusinessTravel', 'Department', 'State', 'Ethnicity', 'EducationField', 
-    'JobRole', 'MaritalStatus', 'StockOptionLevel', 'TrainingOpportunitiesWithinYear',
-    'TrainingOpportunitiesTaken']
+# # retyping the non-ordinal category columns
+# categorical_cols = ['BusinessTravel', 'Department', 'State', 'Ethnicity', 'EducationField', 
+#     'JobRole', 'MaritalStatus', 'StockOptionLevel', 'TrainingOpportunitiesWithinYear',
+#     'TrainingOpportunitiesTaken']
 
-for col in categorical_cols:
-    df[col] = df[col].astype('category')
+# for col in categorical_cols:
+#     df[col] = df[col].astype('category')
 
-# change date variables to datetime
-date_cols = ['HireDate', 'ReviewDate']
-for col in date_cols:
-    df[col] = pd.to_datetime(df[col])
+# # change date variables to datetime
+# date_cols = ['HireDate', 'ReviewDate']
+# for col in date_cols:
+#     df[col] = pd.to_datetime(df[col])
 
 numeric_cols = []
 ordinal_cols = {}
@@ -59,16 +59,19 @@ for col in df.columns:
             nominal_cols.append(col)
     
     elif pd.api.types.is_numeric_dtype(df[col]):
-        unique_vals = df[col].nunique()
-        if unique_vals == 2:
+        if df[col].nunique(dropna=True) == 2:
             binary_cols.append(col)
         else:
             numeric_cols.append(col)
+
     else:
         nominal_cols.append(col)
 
+# unique_vals = df[col].nunique()
+#         if unique_vals == 2:
+#             binary_cols.append(col)
 # print(ordinal_cols)
-# print(binary_cols)
+print(binary_cols)
 # print(numeric_cols)
 # print(nominal_cols)
 

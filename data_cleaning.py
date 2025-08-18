@@ -72,7 +72,7 @@ def clean_data():
 
     # check summary before saving
     print("\nSummary:")
-    print(df.info())
+    df.info()
     print("\nMissing Values:")
     print(df.isnull().sum())
     print("\nPreview:")
@@ -80,7 +80,11 @@ def clean_data():
 
     # save cleaned data
     df.to_csv('cleaned_employee_data.csv', index=False)
-    print("Data cleaned and saved as cleaned_employee_data.csv")
+    print("Data cleaned and saved as cleaned_employee_data.csv\n")
+
+    df = df.drop(columns=['EmployeeID'])
+
+    return df
 
 if __name__ == "__main__":
     clean_data()

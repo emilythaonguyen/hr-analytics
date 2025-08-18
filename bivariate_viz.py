@@ -102,13 +102,13 @@ def bivar_ordinal_plot(df, variables, target='Attrition'):
     os.makedirs('plots/barplots', exist_ok=True)
 
     for var in variables:
-        # Proportion of Attrition by level
-        ct = df.groupby(var)['Attrition'].mean()
+        # Proportion of target by level
+        ct = df.groupby(var)[target].mean()
         ct.plot(kind='bar', figsize=(6,4), color='skyblue')
-        plt.ylabel('Attrition Rate')
-        plt.title(f'Attrition Rate by {var}')
+        plt.ylabel(f'{target} Rate')
+        plt.title(f'{target} Rate by {var}')
         plt.tight_layout()
-        filename = os.path.join('plots/barplots', f'Attrition_Rate_by_{var}.png')
+        filename = os.path.join('plots/barplots', f'{target}_Rate_by_{var}.png')
         plt.savefig(filename, dpi=300)
         plt.show()
         plt.close()
