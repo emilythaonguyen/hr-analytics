@@ -1,0 +1,233 @@
+import pandas as pd
+import numpy as np
+import os
+from data_cleaning import clean_data
+from feature_transformers import DateTimeTransformer, OrdinalTransformer
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.inspection import permutation_importance
+from sklearn.metrics import roc_auc_score, RocCurveDisplay
+import matplotlib.pyplot as plt
+
+
+# load the data
+df = clean_data()
+
+# featuers + target
+X = df.drop(columns=['Attrition'])
+y = df['Attrition']
+
+# numeric columns, categorical features, datetime features
+datetime_features = X.select_dtypes(include=['datetime64[ns]']).columns.tolist()
+ordinal_features = [
+        'EnvironmentSatisfaction', 'JobSatisfaction', 'RelationshipSatisfaction', 
+        'WorkLifeBalance', 'SelfRating', 'ManagerRating', 'Education', 'StockOptionLevel', 'TrainingOpportunitiesWithinYear',
+        'TrainingOpportunitiesTaken'
+    ]
+categorical_features = X.select_dtypes(include=["object", "category"]).columns
+numeric_features = X.select_dtypes(include=["int64", "float64"]).columns
+# drop ordinal_features from other feature lists
+categorical_features = [col for col in categorical_features if col not in ordinal_features]
+numeric_features = [col for col in numeric_features if col not in ordinal_features]
+
+# split
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42, stratify=y
+)
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ("datetime", DateTimeTransformer(reference_date='2022-12-30'), datetime_features),
+        ("ordinal", OrdinalTransformer(ordinal_variables=ordinal_features), ordinal_features),
+        ("num", StandardScaler(), numeric_features),
+        ("cat", OneHotEncoder(drop="first", handle_unknown="ignore"), categorical_features)
+    ]
+)
+
+# train full models
+rf = Pipeline([
+    ("preprocessor", preprocessor),
+    ("classifier", RandomForestClassifier(n_estimators=200, random_state=12, class_weight="balanced"))
+])
+rf.fit(X_train, y_train)
+
+log_reg = Pipeline([
+    ("preprocessor", preprocessor),
+    ("classifier", LogisticRegression(max_iter=1000, class_weight="balanced"))
+])
+log_reg.fit(X_train, y_train)
+
+result = permutation_importance(rf, X_train, y_train, n_repeats=10, random_state=42, scoring="roc_auc")
+importances = pd.Series(result.importances_mean, index=X_train.columns).sort_values(ascending=False)
+top_features = importances.head(10).index.tolist()
+print("Top 10 features:\n", top_features)
+
+# limited dataset
+X_train_lim = X_train[top_features]
+X_test_lim = X_test[top_features]
+
+# limit feature categories for preprocessing
+datetime_lim = [f for f in top_features if f in datetime_features]
+ordinal_lim = [f for f in top_features if f in ordinal_features]
+categorical_lim = [f for f in top_features if f in categorical_features]
+numeric_lim = [f for f in top_features if f in numeric_features]
+
+preprocessor_lim = ColumnTransformer(
+    transformers=[
+        ("datetime", DateTimeTransformer(reference_date='2022-12-30'), datetime_lim),
+        ("ordinal", OrdinalTransformer(ordinal_variables=ordinal_lim), ordinal_lim),
+        ("num", StandardScaler(), numeric_lim),
+        ("cat", OneHotEncoder(drop="first", handle_unknown="ignore"), categorical_lim)
+    ]
+)
+
+# train limited models
+rf_lim = Pipeline([
+    ("preprocessor", preprocessor_lim),
+    ("classifier", RandomForestClassifier(n_estimators=200, random_state=12, class_weight="balanced"))
+])
+rf_lim.fit(X_train_lim, y_train)
+
+log_reg_lim = Pipeline([
+    ("preprocessor", preprocessor_lim),
+    ("classifier", LogisticRegression(max_iter=1000, class_weight="balanced"))
+])
+log_reg_lim.fit(X_train_lim, y_train)
+
+# evaluate
+y_proba_rf_lim = rf_lim.predict_proba(X_test_lim)[:,1]
+y_proba_log_lim = log_reg_lim.predict_proba(X_test_lim)[:,1]
+
+print("Limited RF ROC-AUC:", roc_auc_score(y_test, y_proba_rf_lim))
+print("Limited Logistic ROC-AUC:", roc_auc_score(y_test, y_proba_log_lim))
+
+
+# plot roc curves
+os.makedirs("plots/model", exist_ok=True)
+ax = plt.gca()
+
+y_proba_rf_full = rf.predict_proba(X_test)[:,1]
+y_proba_log_full = log_reg.predict_proba(X_test)[:,1]
+
+RocCurveDisplay.from_predictions(y_test, y_proba_rf_full, name="RF Full", ax=ax)
+RocCurveDisplay.from_predictions(y_test, y_proba_log_full, name="Logistic Full", ax=ax)
+RocCurveDisplay.from_predictions(y_test, y_proba_rf_lim, name="RF Limited", ax=ax)
+RocCurveDisplay.from_predictions(y_test, y_proba_log_lim, name="Logistic Limited", ax=ax)
+
+
+plt.plot([0,1],[0,1],"k--")
+plt.title("ROC Curve: Full vs Limited Models")
+plt.savefig("Plots/model/roc_curve_comparison.png", dpi=300, bbox_inches="tight")
+plt.show()
+
+
+
+
+# OLD CODE
+# # full models
+# y_proba_log_full = log_reg.predict_proba(X_test)[:,1]
+# y_proba_rf_full = rf.predict_proba(X_test)[:,1]
+
+# RocCurveDisplay.from_predictions(y_test, y_proba_log_full, name="Logistic Full", ax=ax)
+# RocCurveDisplay.from_predictions(y_test, y_proba_rf_full, name="RF Full", ax=ax)
+
+# # limited models
+# RocCurveDisplay.from_predictions(y_test_lim, y_proba_log_lim, name="Logistic Limited", ax=ax)
+# RocCurveDisplay.from_predictions(y_test_lim, y_proba_rf_lim, name="RF Limited", ax=ax)
+
+# plt.plot([0,1], [0,1], "k--")
+# plt.title("ROC Curve Comparison: Full vs Limited Models")
+# plt.savefig("Plots/model/roc_curve_comparison.png", dpi=300, bbox_inches="tight")
+# plt.show()
+
+# OLD CODE - just in case i need it
+# import pandas as pd
+# import os
+# from data_cleaning import clean_data
+# from sklearn.model_selection import train_test_split
+# from sklearn.preprocessing import StandardScaler, OneHotEncoder
+# from sklearn.compose import ColumnTransformer
+# from sklearn.pipeline import Pipeline
+# from sklearn.linear_model import LogisticRegression
+# from sklearn.ensemble import RandomForestClassifier
+# from sklearn.metrics import accuracy_score, precision_score, recall_score, roc_auc_score, classification_report, RocCurveDisplay
+
+
+# # load data
+# df = clean_data()
+
+# # features + target
+# X = df.drop(columns=["Attrition"])
+# y = df["Attrition"]
+
+# # split
+# X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+
+# # column types
+# numeric_features = X.select_dtypes(include=["int64", "float64"]).columns
+# categorical_features = X.select_dtypes(include=["object", "category"]).columns
+
+# # preprocessing
+# preprocessor = ColumnTransformer(
+#     transformers=[
+#         ("num", StandardScaler(), numeric_features),
+#         ("cat", OneHotEncoder(drop="first", handle_unknown="ignore"), categorical_features)
+#     ]
+# )
+
+# # logist regression model
+
+# log_reg = Pipeline(steps=[
+#     ("preprocessor", preprocessor),
+#     ("classifier", LogisticRegression(max_iter=1000, class_weight="balance"))
+#     ])
+
+
+# log_reg.fit(X_train, y_train)
+# y_pred_log = log_reg.predict(X_test)
+# y_proba_log = log_reg.predict_proba(X_test)[:, 1]
+
+# print('Logestic Regression Results')
+# print("Accuracy:", accuracy_score(y_test, y_pred_log))
+# print("Precision:", precision_score(y_test, y_pred_log))
+# print("Recall:", recall_score(y_test, y_pred_log))
+# print("ROC-AUC:", roc_auc_score(y_test, y_proba_log))
+# print(classification_report(y_test, y_pred_log))
+
+# # random forest model
+
+# rf = Pipeline(steps=[
+#     ("preprocessor", preprocessor),
+#     ("classifier", RandomForestClassifier(n_estimators=200, random_state=12, class_weight="balanced"))
+# ])
+
+# rf.fit(X_train, y_train)
+# y_pred_rf = rf.predict(X_test)
+# y_proba_rf = rf.predict_proba(X_test)[:, 1]
+
+# print("\nRandom Forest Results")
+# print("Accuracy:", accuracy_score(y_test, y_pred_rf))
+# print("Precision:", precision_score(y_test, y_pred_rf))
+# print("Recall:", recall_score(y_test, y_pred_rf))
+# print("ROC-AUC:", roc_auc_score(y_test, y_proba_rf))
+# print(classification_report(y_test, y_pred_rf))
+
+# # ROC Curve Comparison
+# os.makedirs("Plots/model", exist_ok=True)
+
+
+# import matplotlib.pyplot as plt
+
+# ax = plt.gca()
+
+# RocCurveDisplay.from_predictions(y_test, y_proba_log, name="Logistic Regression", ax=ax)
+# RocCurveDisplay.from_predictions(y_test, y_proba_rf, name="Random Forest", ax=ax)
+# plt.plot([0,1], [0,1], "k--")  # diagonal line
+# plt.title("ROC Curve Comparison")
+# filename = os.path.join("Plots/model", "roc_curve_comparison.png")
+# plt.savefig(filename, dpi=300, bbox_inches="tight")
+# plt.show()

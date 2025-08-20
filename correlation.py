@@ -71,7 +71,7 @@ for col in df.columns:
 #         if unique_vals == 2:
 #             binary_cols.append(col)
 # print(ordinal_cols)
-print(binary_cols)
+# print(binary_cols)
 # print(numeric_cols)
 # print(nominal_cols)
 

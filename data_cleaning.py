@@ -24,8 +24,8 @@ def clean_data():
     None
     """
     # load the data
-    df_employee = pd.read_csv('Employee.csv')
-    df_performance = pd.read_csv('PerformanceRating.csv')
+    df_employee = pd.read_csv('data/Employee.csv')
+    df_performance = pd.read_csv('data/PerformanceRating.csv')
 
     # merge both datasets
     df = pd.merge(df_employee, df_performance, on='EmployeeID')
@@ -59,7 +59,7 @@ def clean_data():
     df['ReviewDate'] = pd.to_datetime(df['ReviewDate'])
 
     # fix typos in EducationField
-    # realized this error when i was running the summary for education field
+    # realized this error when i ran the summary
     df['EducationField'] = df['EducationField'].str.strip().str.title()
     df['EducationField'] = df['EducationField'].replace({
         'Marketing ': 'Marketing',
@@ -79,7 +79,7 @@ def clean_data():
     print(df.head())
 
     # save cleaned data
-    df.to_csv('cleaned_employee_data.csv', index=False)
+    df.to_csv('data/cleaned_employee_data.csv', index=False)
     print("Data cleaned and saved as cleaned_employee_data.csv\n")
 
     df = df.drop(columns=['EmployeeID'])
