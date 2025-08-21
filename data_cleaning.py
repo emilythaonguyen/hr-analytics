@@ -26,10 +26,19 @@ def clean_data():
     # load the data
     df_employee = pd.read_csv('data/Employee.csv')
     df_performance = pd.read_csv('data/PerformanceRating.csv')
-
+    
+    # change ReviewDate to datetime
+    df_performance["ReviewDate"] = pd.to_datetime(df_performance["ReviewDate"])
+    # sort performance by employee + review date
+    df_performance = df_performance.sort_values(["EmployeeID", "ReviewDate"])
+    # keep the most recent review for each employee
+    df_performance = df_performance.groupby("EmployeeID").tail(1)
+    
     # merge both datasets
     df = pd.merge(df_employee, df_performance, on='EmployeeID')
-    
+
+    # count the number of reviews for each employee
+
     # map binary columns
     df['Attrition'] = df['Attrition'].map({'Yes': 1, 'No': 0})
     df['OverTime'] = df['OverTime'].map({'Yes': 1, 'No': 0})
@@ -54,12 +63,11 @@ def clean_data():
     for col in categorical_cols:
         df[col] = df[col].astype('category')
 
-    # make sure date columns are datetime
+    # make sure any date columns are in datetime
     df['HireDate'] = pd.to_datetime(df['HireDate'])
-    df['ReviewDate'] = pd.to_datetime(df['ReviewDate'])
 
     # fix typos in EducationField
-    # realized this error when i ran the summary
+    # realized this error when i ran the summary for it
     df['EducationField'] = df['EducationField'].str.strip().str.title()
     df['EducationField'] = df['EducationField'].replace({
         'Marketing ': 'Marketing',
@@ -77,7 +85,7 @@ def clean_data():
     print(df.isnull().sum())
     print("\nPreview:")
     print(df.head())
-
+    
     # save cleaned data
     df.to_csv('data/cleaned_employee_data.csv', index=False)
     print("Data cleaned and saved as cleaned_employee_data.csv\n")
