@@ -1,7 +1,9 @@
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import shutil
 import os
+
 
 def bivar_numeric_plot(df, variables, target='Attrition'):
     """
@@ -84,32 +86,33 @@ def bivar_nominal_plot(df, variables, target='Attrition'):
         plt.show()
         plt.close()
 
-def bivar_ordinal_plot(df, variables, target='Attrition'):
+def bivar_spearman_plot(df, variables, target='Attrition'):
     """
-    Generate plots to visualize dataset correlation
-    between ordinal variables against the target variable.
+    Generate spearman plot to visualize dataset correlation
+    between ordinal + numeric variables against the target variable.
 
     Parameters
     ----------
     df : DataFrame
         The DataFrame containing the data.
-    variables : dict
-        Dictionary containing ordinal variables with list of ordered levels
+    variables : list
+        Dictionary containing ordinal + numeric variables with list of ordered levels
     target : str 
         Binary target column name
     """
     # make directory
-    os.makedirs('plots/barplots', exist_ok=True)
-
-    for var in variables:
-        # Proportion of target by level
-        ct = df.groupby(var)[target].mean()
-        ct.plot(kind='bar', figsize=(6,4), color='skyblue')
-        plt.ylabel(f'{target} Rate')
-        plt.title(f'{target} Rate by {var}')
-        plt.tight_layout()
-        filename = os.path.join('plots/barplots', f'{target}_Rate_by_{var}.png')
-        plt.savefig(filename, dpi=300)
+    os.makedirs('plots/heatmaps', exist_ok=True)
+    
+    # keep only columns that exist in df
+    cols = [col for col in variables if col in df.columns] + [target]
+    
+    if cols:
+        plt.figure(figsize=(12,8))
+        corr = df[cols].corr(method='spearman')
+        sns.heatmap(corr, annot=True, cmap='RdBu', fmt='.2f', center=0)
+        plt.title('Spearman Correlation Heatmap')
+        filename = os.path.join('plots/heatmaps', 'Spearman_Heatmap.png')
+        plt.savefig(filename, dpi=300, bbox_inches='tight')
         plt.show()
         plt.close()
 
@@ -178,97 +181,3 @@ def bivar_datetime_plot(df, variables, target='Attrition', freq='Y'):
         plt.savefig(filename, dpi=300)
         plt.show()
         plt.close()
-
-
-
-# def plot_pairplot(df, numeric_vars, hue=None, save_path=None):
-#     """
-#     Creates a seaborn pairplot for numeric variables.
-
-#     Parameters
-#     __________
-#     df : DataFrame
-#         Data containing the variable
-#     numeric_vars : list
-#         List of numeric variable names to plot
-#     hue : str, optional
-#         Column name for coloring points
-#     save_path: str, optional
-#         Path to save the plot as a file
-#     """
-#     # build the list of columns to use
-#     hue_columns = numeric_vars.copy()
-#     if hue: 
-#         hue_columns.append(hue)
-    
-#     #subset the dataframe
-#     data_subset = df[hue_columns]
-
-#     # create the pairplot
-#     sns.pairplot(data_subset, hue=hue, diag_kind="kde", corner=True)
-#     plt.suptitle("Pairplot of Numeric Features", y=1.02)
-
-#     # save plot
-#     if save_path:
-#         plt.savefig(save_path, dpi=300, bbox_inches="tight")
-    
-#     plt.show()
-
-# def plot_correlation_heatmap(df, numeric_vars, save_path=None):
-#     """
-#     Plots a heatmap of correlations for numeric variables
-
-#     Parameters
-#     __________
-#     df : DataFrame
-#         Data containing the variables.
-#     numeric_vars : list
-#         List of numeric variable names to plot
-#     save_path : str, optional
-#         Path to save the plot as a file.
-#     """
-#     corr = df[numeric_vars].corr()
-
-#     plt.figure(figsize=(10, 8))
-#     sns.heatmap(corr, annot=True, cmap='coolwarm', fmt=".2f", cbar=True)
-#     plt.title("Correlation Heatmap of Numeric Variables")
-#     if save_path:
-#         plt.savefig(save_path, dpi=300, bbox_inches='tight')
-    
-#     plt.show()
-
-# def plot_stacked_bar(df, cat_var, target, normalize=True, save_path=None):
-#     """
-#     Plots a stacked bar chart for a categorical variable against the target.
-
-#     Parameters
-#     ----------
-#     df : DataFrame
-#         Data containing the variables.
-#     cat_var : str
-#         Categorical variable name.
-#     target : str
-#         Target variable name.
-#     normalize ; bool, default=True
-#         Whether to show proportions instead of raw counts.
-#     save_path : str, optional
-#         Path to save the plot as a file.
-#     """
-#     # create crosstab
-#     ctab = pd.crosstab(df[cat_var], df[target])
-
-#     # normalize if needed
-#     if normalize:
-#         ctab = ctab.div(ctab.sum(axis=1), axis=0)
-
-#     # plot stacked bar
-#     ctab.plot(kind='bar', stacked=True, figsize=(8,6), colormap="Set2")
-#     plt.xlabel(cat_var)
-#     plt.ylabel("Proportion")
-#     plt.title(f"Stacked Bar Chart of {cat_var} vs {target}")
-#     plt.legend(title=target)
-#     plt.tight_layout()
-
-#     if save_path:
-#         plt.savefig(save_path, dpi=300, bbox_inches='tight')
-#     plt.show()

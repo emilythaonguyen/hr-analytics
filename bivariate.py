@@ -2,15 +2,10 @@ import pandas as pd
 import scipy.stats as stats
 
 
-def nparametric_tests(df, target='Attrition', alpha=0.05):
+def nparametric_tests(df, target='Attrition', alpha=0.05, ordinal_cols=None):
     """
     Run nonparametric statistical tests between a binary target variable
-    and all other variables in the DataFrame.
-    
-    For numeric variables:
-        - Mann-Whitney U test (continuous/ordinal vs binary target)
-    For categorical variables:
-        - Chi-square test of independence
+    and all other variables in the DataFrame, automatically handling ordinal columns.
 
     Parameters
     ----------
@@ -20,6 +15,8 @@ def nparametric_tests(df, target='Attrition', alpha=0.05):
         The binary target variable to test against.
     alpha : float
         Significance level threshold.
+    ordinal_cols = list, optional
+        Names of columns that are ordinal (even if stored as strings/categorical).
         
     Returns
     -------
@@ -28,34 +25,52 @@ def nparametric_tests(df, target='Attrition', alpha=0.05):
         sorted from most significant to least significant (by p-values).
     """
     results = []
-
+    
+    if ordinal_cols is None:
+        ordinal_cols = []
+    
     for col in df.columns:
         if pd.api.types.is_datetime64_dtype(df[col]) or col == target:
             continue # skip target and datetime columns
-        
-        if pd.api.types.is_numeric_dtype(df[col]) or \
-            (pd.api.types.is_categorical_dtype(df[col]) and df[col].cat.ordered):
-            # mann-Whitney u test for numerical vs binary catgorical target
-            group1 = df[df[target]==0][col].dropna()
-            group2 = df[df[target]==1][col].dropna()
-            stat, p = stats.mannwhitneyu(group1, group2, alternative='two-sided')
-            results.append({'Variable': col, 
-                            'Test': 'Mann-Whitney U', 
-                            'Statistic': stat, 
-                            'p-value': p,
-                            'Significant': p < alpha
-                            })
-        
-        elif pd.api.types.is_categorical_dtype(df[col]) or df[col].dtype == object:
-            # chi-square test for categorical variables/target
+
+        # for numeric and ordinal columns
+        if pd.api.types.is_numeric_dtype(df[col]):
+            group0 = df.loc[df[target] == 0, col].dropna()
+            group1 = df.loc[df[target] == 1, col].dropna()
+
+            if len(group0) > 0 and len(group1) > 0:
+                if ordinal_cols is not None and col in ordinal_cols:
+                    # ordinal → Spearman
+                    corr, p = stats.spearmanr(df[col], df[target])
+                    results.append({
+                        'Variable': col,
+                        'Test': 'Spearman',
+                        'Statistic/Corr': corr,
+                        'p-value': p,
+                        'Significant': p < alpha
+                })
+                else:
+                    # numeric → Mann-Whitney
+                    stat, p = stats.mannwhitneyu(group0, group1, alternative='two-sided')
+                    results.append({
+                        'Variable': col,
+                        'Test': 'Mann-Whitney U',
+                        'Statistic/Corr': stat,
+                        'p-value': p,
+                        'Significant': p < alpha
+                    })
+
+        else:
+            # chi-square test for categorical variables
             contingency_table = pd.crosstab(df[col], df[target])
             chi2, p, dof, ex = stats.chi2_contingency(contingency_table)
             results.append({'Variable': col, 
                             'Test': 'Chi-square', 
-                            'Statistic': chi2, 
+                            'Statistic/Corr': chi2, 
                             'p-value': p,
                             'Significant': p < alpha
                             })
+            
     results_df = pd.DataFrame(results)
 
     results_df = results_df.sort_values(by='p-value', ascending=True).reset_index(drop=True)
