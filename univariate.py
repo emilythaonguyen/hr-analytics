@@ -21,10 +21,6 @@ def ql_stats(df, col):
         The DataFrame containing the data
     col : str
         The name of the categorical column to analyze
-    
-    Returns
-    -------
-    None
     """
 
     # summary
@@ -66,13 +62,9 @@ def qn_stats(df, col):
     Parameters
     ----------
     df : DataFrame
-        The DataFrame containing the data
+        The DataFrame containing the data.
     col : str
-        The name of the numeric column we want to analyze
-    
-    Returns
-    -------
-    None
+        The name of the numeric column we want to analyze.
     """
     # summary
     print(f"\n--- Numerical Summary: {col} ---")
@@ -100,7 +92,7 @@ def qn_stats(df, col):
     dir = "plots/histograms"
     os.makedirs(dir, exist_ok=True)
     # histogram + kde
-    sns.histplot(df[col], kde=True, bins=20)
+    sns.histplot(df[col], kde=True, stat='density', bins=20)
     plt.title(f"Distribution of {col}")
     plt.xlabel(col)
     plt.ylabel('Frequency')
@@ -142,10 +134,6 @@ def dt_stats(df, col):
         The DataFrame containing the data.
     col: str 
         The name of the datetime column to summarize.
-
-    Returns
-    -------
-    None
     """
     # datetime summary
     print(f"\n--- Datetime Summary: {col} ---")
@@ -164,6 +152,7 @@ def dt_stats(df, col):
     # make directory for time series plot
     dir = "plots/time_series_plots"
     os.makedirs(dir, exist_ok=True)
+    sns.color_palette(palette='Paired')
     # yearly counts - time series plot
     dt_yearly = df.set_index(col).resample('Y').size()
     plt.figure(figsize=(14, 7))

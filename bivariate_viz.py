@@ -1,14 +1,14 @@
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-import shutil
 import os
 
 
 def bivar_numeric_plot(df, variables, target='Attrition'):
     """
-    Generate plots to visualize dataset correlation 
-    between numeric variables against the target variable.
+    Generate plots to visualize dataset correlation between numeric variables
+    against the target variable, and prints out statistics for the given numeric 
+    variable.
 
     Parameters
     ----------
@@ -17,7 +17,7 @@ def bivar_numeric_plot(df, variables, target='Attrition'):
     variables : list
         List containing variables to plot against the target.
     target : str, default = 'attrition'
-        The variable being compared against the others.
+        The variable we're testing for assocation with.
     """
     # create directory
     os.makedirs('plots/pairplots', exist_ok=True)
@@ -26,15 +26,16 @@ def bivar_numeric_plot(df, variables, target='Attrition'):
     
     # boxplots
     for var in variables:
+        print(f"\nStatistics for {var} by {target}:")
+        print(df.groupby(target)[var].describe())
         plt.figure(figsize=(6,4))
-        sns.boxplot(x=df[target], y=df[var], palette='Set2')
+        sns.boxplot(x=df[target], y=df[var], palette='rainbow')
         plt.title(f'{var} Distribution by {target}')
         plt.tight_layout()
         filename = os.path.join('plots/boxplots', f'{var}_by_{target}_boxplot.png')
         plt.savefig(filename, dpi=300)
         plt.show()
         plt.close()
-
 
     # pairplot
     if variables:
@@ -49,17 +50,18 @@ def bivar_numeric_plot(df, variables, target='Attrition'):
     if variables:
         plt.figure(figsize=(12,8))
         corr = df[variables + [f'{target}']].corr()
-        sns.heatmap(corr, annot=True, cmap='RdBu', fmt='.2f')
+        sns.heatmap(corr, annot=True, cmap='bwr', fmt='.2f')
         plt.title('Correlation Heatmap')
         filename = os.path.join('plots/heatmaps', 'Heatmap.png')
         plt.savefig(filename, dpi=300, bbox_inches='tight')
         plt.show()
         plt.close()
 
-def bivar_nominal_plot(df, variables, target='Attrition'):
+def bivar_categorical_plot(df, variables, target='Attrition'):
     """
-    Generate plots to visualize dataset correlation 
-    between numeric variables against the target variable.
+    Generate plots to visualize dataset correlation between numeric variables 
+    against the target variable, and and prints out statistics for the given numeric 
+    variable.
 
     Parameters
     ----------
@@ -68,16 +70,18 @@ def bivar_nominal_plot(df, variables, target='Attrition'):
     variables : list
         List containing variables to plot against the target.
     target : str, default = 'attrition'
-        The variable being compared against the others.
+        The variable we're testing for assocation with.
     """
     # create directory
     os.makedirs('plots/stackedbars', exist_ok=True)
 
     # stacked bar plot for nominal variables
     for var in variables:
+        print(f"\nStatistics for {var} by {target}:")
+        print(df.groupby(var)[target].value_counts().unstack().fillna(0))
         cross_tab = pd.crosstab(df[var], df[target])
         cross_tab_pct = cross_tab.div(cross_tab.sum(1), axis=0)
-        cross_tab_pct.plot(kind='bar', stacked=True, figsize=(10, 6), colormap='Set2')
+        cross_tab_pct.plot(kind='bar', stacked=True, figsize=(10, 6), colormap='tab20c')
         plt.ylabel('Proportion')
         plt.title(f'Attrition by {var}')
         plt.legend(title=target)
@@ -88,7 +92,7 @@ def bivar_nominal_plot(df, variables, target='Attrition'):
 
 def bivar_spearman_plot(df, variables, target='Attrition'):
     """
-    Generate spearman plot to visualize dataset correlation
+    Generate spearman plot to visualize dataset correlation 
     between ordinal + numeric variables against the target variable.
 
     Parameters
@@ -99,6 +103,8 @@ def bivar_spearman_plot(df, variables, target='Attrition'):
         Dictionary containing ordinal + numeric variables with list of ordered levels
     target : str 
         Binary target column name
+    target : str, default = 'attrition'
+        The variable we're testing for assocation with.
     """
     # make directory
     os.makedirs('plots/heatmaps', exist_ok=True)
@@ -109,7 +115,7 @@ def bivar_spearman_plot(df, variables, target='Attrition'):
     if cols:
         plt.figure(figsize=(12,8))
         corr = df[cols].corr(method='spearman')
-        sns.heatmap(corr, annot=True, cmap='RdBu', fmt='.2f', center=0)
+        sns.heatmap(corr, annot=True, cmap='PiYG', fmt='.2f', center=0)
         plt.title('Spearman Correlation Heatmap')
         filename = os.path.join('plots/heatmaps', 'Spearman_Heatmap.png')
         plt.savefig(filename, dpi=300, bbox_inches='tight')
@@ -118,8 +124,9 @@ def bivar_spearman_plot(df, variables, target='Attrition'):
 
 def bivar_binary_plot(df, variables, target='Attrition'):
     """
-    Generate bar plots for binary variables vs binary target
-
+    Generate bar plots for binary variables vs binary target and prints 
+    out statistics for the given numeric variable.
+    
     Parameters
     ----------
     df : DataFrame
@@ -134,6 +141,9 @@ def bivar_binary_plot(df, variables, target='Attrition'):
 
     # bar plot
     for var in variables:
+        print(f"\nStatistics for {var} by {target}:")
+        print(df.groupby(var)[target].agg(['mean', 'count', 'std']))
+        
         ct = df.groupby(var)[target].mean()
 
         plt.figure(figsize=(5,4))
@@ -149,7 +159,8 @@ def bivar_binary_plot(df, variables, target='Attrition'):
 
 def bivar_datetime_plot(df, variables, target='Attrition', freq='Y'):
     """
-    Generate line plots for datetime variables showing mean target over time 
+    Generate line plots for datetime variables showing 
+    mean target over time.
 
     Parameters
     ----------

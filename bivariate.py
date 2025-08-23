@@ -4,20 +4,22 @@ import scipy.stats as stats
 
 def nparametric_tests(df, target='Attrition', alpha=0.05, ordinal_cols=None):
     """
-    Run nonparametric statistical tests between a binary target variable
-    and all other variables in the DataFrame, automatically handling ordinal columns.
+    Run a specific nonparametric test based on the dtype of the variable.
+    numeric variables: Mann-Whitney 
+    categorical variables: Chi-Square
+    ordinal (if present): Spearman
 
     Parameters
     ----------
     df : DataFrame
-        the DataFrame that contains the data.
+        the DataFrame that contains the data to test on.
     target : str, default='Attrition'
-        The binary target variable to test against.
+        The binary target variable being tested for association.
     alpha : float
         Significance level threshold.
     ordinal_cols = list, optional
-        Names of columns that are ordinal (even if stored as strings/categorical).
-        
+        Names of columns that are ordinal
+    
     Returns
     -------
     DataFrame
@@ -40,7 +42,7 @@ def nparametric_tests(df, target='Attrition', alpha=0.05, ordinal_cols=None):
 
             if len(group0) > 0 and len(group1) > 0:
                 if ordinal_cols is not None and col in ordinal_cols:
-                    # ordinal → Spearman
+                    # ordinal → spearman
                     corr, p = stats.spearmanr(df[col], df[target])
                     results.append({
                         'Variable': col,
@@ -50,7 +52,7 @@ def nparametric_tests(df, target='Attrition', alpha=0.05, ordinal_cols=None):
                         'Significant': p < alpha
                 })
                 else:
-                    # numeric → Mann-Whitney
+                    # numeric → mann-whitney
                     stat, p = stats.mannwhitneyu(group0, group1, alternative='two-sided')
                     results.append({
                         'Variable': col,
@@ -93,14 +95,10 @@ def interpret_results(variable, test_name, statistic, p_value, alpha=0.05):
         p-value from the test
     alpha : float, default=0.05
         Significance level threshold.
-   
-    Returns
-    -------
-    None
     """
     print(f"--- {variable} ---")
     print(f"Test: {test_name}")
-    print(f"Statistic: {statistic:.4g}")
+    print(f"Statistic/Corr: {statistic:.4g}")
     print(f"p_value: {p_value:.4g}")
     print(f"Significance level: {alpha} ({(1-alpha)*100}% confidence)")
     print(f"Null hypothesis (H0): There is no relationship/difference between {variable} and Attrition.")

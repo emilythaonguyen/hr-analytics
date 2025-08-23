@@ -1,7 +1,7 @@
 import pandas as pd
 from pandas.api.types import CategoricalDtype
 from bivariate import nparametric_tests, interpret_results
-from bivariate_viz import bivar_numeric_plot, bivar_nominal_plot, bivar_spearman_plot, bivar_binary_plot, bivar_datetime_plot
+from bivariate_viz import bivar_numeric_plot, bivar_categorical_plot, bivar_spearman_plot, bivar_binary_plot, bivar_datetime_plot
 from data_cleaning import clean_data
 
 
@@ -41,8 +41,9 @@ for col in df.columns:
         nominal_cols.append(col)
 
 bivar_numeric_plot(df, numeric_cols)
-bivar_nominal_plot(df, nominal_cols)
-bivar_spearman_plot(df, ordinal_cols)
+bivar_categorical_plot(df, nominal_cols)
+bivar_categorical_plot(df, ordinal_cols)
+bivar_spearman_plot(df, spearman_cols)
 bivar_binary_plot(df, binary_cols)
 bivar_datetime_plot(df, datetime_cols)
 

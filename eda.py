@@ -1,5 +1,4 @@
 import pandas as pd
-from pandas.api.types import CategoricalDtype
 from data_cleaning import clean_data
 from univariate import ql_stats, qn_stats, dt_stats
 
@@ -10,8 +9,8 @@ def run_eda(dataset_type='all'):
 
     Parameters
     ----------
-    dataset_type : str
-        Names which cleaned dataset we want to do the first steps of EDA on.
+    dataset_type : str, default = 'all'
+        The name of which cleaned dataset we want to do eda on
     """
     # load the dataset
     df = clean_data(dataset_type)
@@ -31,4 +30,5 @@ def run_eda(dataset_type='all'):
         else:
             ql_stats(df, col)
 
-run_eda('all')
+run_eda('hr_only')
+run_eda('with_reviews')

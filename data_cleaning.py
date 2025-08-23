@@ -1,6 +1,5 @@
 # import libraries
 import pandas as pd
-from pandas.api.types import CategoricalDtype
 
 def clean_data(dataset_type="all"):
     """

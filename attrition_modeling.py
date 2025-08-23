@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split, StratifiedKFold, cross_val_score
+from sklearn.base import clone
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
@@ -22,12 +23,55 @@ from bivariate import nparametric_tests
 
 # helper functions
 def build_preprocessor(X, numeric_features, categorical_features):
+    """
+    Build a preprocessing pipeline for numeric and categorical features.
+
+    Using scikit-learn ColumnTransformer that applies:
+        - StandardScaler() to numeric features
+        - OneHotEncoder() to categorical features
+    
+    Parameters
+    ----------
+    X: pd.DataFrame
+        The input dataset containing both numeric and categorical columns
+    numeric_features : list of str
+        Column names in 'X' that are numeric
+    categorical_features: list of str
+        Column names in 'X' that are categorical
+
+    Return
+    ------
+    ColumnTransformer
+        A fitted ColumnTransformer that can be used in a modeling pipeline.
+    """
     return ColumnTransformer([
         ("num", StandardScaler(), numeric_features),
         ("cat", OneHotEncoder(drop='first', handle_unknown='ignore'), categorical_features)
     ])
 
 def train_model(X_train, y_train, model):
+    """
+    Build and train a machine learning pipeline.
+
+    Constructs a scikit-learn Pipeline that applies the preprocessing step
+    stored in 'X_train.preprocessor', followed by fitting the specified
+    classicfication model on the training data.
+
+    Parameters
+    ----------
+    X_train: DataWrapper
+        Training features wrapped in a custom DataWarapper object that contains 
+        both the feature data ('.data') and the preprocessing transformer ('.preprocessor')
+    y_train : pd.Series or np.ndarray
+        Target labels for training
+    model: estimator
+        A scikit-learn compatible clasifier (e.g., LogisticRegression, RandomForestClassifier)
+    
+    Returns
+    -------
+    pipe: Pipeline
+        A fitted scikit-learn Pipeline consisting of preprocssing and the trained model.
+    """
     pipe = Pipeline([
         ("preprocessor", X_train.preprocessor),
         ("classifier", model)
@@ -36,6 +80,30 @@ def train_model(X_train, y_train, model):
     return pipe
 
 def evaluate_model(model, X_test, y_test, name="Model"):
+    """
+    Evaluate a trained classification model on test data.
+
+    Generates predictions and predicted probabilities for the given test set, 
+    computes evaluation metrics, prints a detailed classification report, 
+    and visualizes a confusion matrix.
+
+    Parameters
+    ----------
+    model : Pipeline or estimator
+        A trained scikit-learn compatible model or pipeline with 'predict' 
+        and 'predict_proba' methods.
+    X_test : pd.DataFrame or np.ndarray
+        Test feature set.
+    y_test : pd.Series or np.ndarray
+        True labels for the test set.
+    name : str, optional (default="Model")
+        A name used in printed output and plot titles.
+
+    Returns
+    -------
+    y_proba : np.ndarray
+        Predicted probabilities for the positive class.
+    """
     y_pred = model.predict(X_test)
     y_proba = model.predict_proba(X_test)[:,1]
     
@@ -56,17 +124,89 @@ def evaluate_model(model, X_test, y_test, name="Model"):
     return y_proba
 
 def cross_validate_pipeline(model, X, y, cv=5, scoring="roc_auc"):
+    """
+    Perform cross-validation on a classification model pipeline.
+
+    Uses stratified K-fold cross-validation to evaluate the model and prints
+    the mean and standard ddeviation of the scores across folds.
+
+    Parameters
+    ----------
+    model : Pipieline or estimator
+        A scikit-learn compatible model or pipeline with 'fit' and 'predict'
+        methods.
+    X : pd.DataFrame or np.ndarray
+        Feature dataset.
+    y : pd.Series or np.ndarray
+        Target labels.
+    cv : int, optional (default=5)
+        Number of cross-validation folds
+    scoring : str, default="roc_auc"
+
+    Returns
+    -------
+    scores: np.ndarray
+        Array of cross-validation scores for each fold.
+    """
     skf = StratifiedKFold(n_splits=cv, shuffle=True, random_state=42)
     scores = cross_val_score(model, X, y, cv=skf, scoring=scoring)
     print(f"{scoring} ({cv}-fold CV): mean={scores.mean():.3f}, std={scores.std():.3f}")
 
+def cross_validate_ensemble(rf, log_reg, X, y, cv=5):
+    """
+    Perform cross-validation for an ensemble of Random Forest and Logistic Regression
+
+    For each fold, both models are trained independently on the training set,
+    than their predicted probabilities are avearged to form an ensemble prediction.
+    The ROC-AUC score is computed for the ensemble on the validation set.
+
+    Parameters
+    ----------
+    rf : estimator
+        A scikit-laern Random Forest classifier
+    log_reg : estimator
+        A scikit-learn Logisitic Regression classifier
+    X : pd.DataFrame
+    y : pd.Series
+        Target labels
+    cv : int, default = 5
+        Number of cross-validation folds.
+    """
+    skf = StratifiedKFold(n_splits=cv, shuffle=True, random_state=42)
+    aucs = []
+    for train_idx, val_idx in skf.split(X, y):
+        X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
+        y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
+        
+        rf_fold = clone(rf)
+        log_reg_fold = clone(log_reg)
+        rf_fold.fit(X_train, y_train)
+        log_reg_fold.fit(X_train, y_train)
+        
+        y_proba_rf = rf_fold.predict_proba(X_val)[:, 1]
+        y_proba_log = log_reg_fold.predict_proba(X_val)[:, 1]
+        y_proba_ensemble = (y_proba_rf + y_proba_log) / 2
+        
+        auc = roc_auc_score(y_val, y_proba_ensemble)
+        aucs.append(auc)
+    print(f"Ensemble ROC-AUC ({cv}-fold CV): mean={np.mean(aucs):.3f}, std={np.std(aucs):.3f}")
+
 # building our models!
 def run_pipeline(dataset_name="hr_only"):
+    """
+    Run the full HR attrition modeling pipeline for a given dataset
+
+    Parameters
+    ----------
+    dataset_name : str, default="hr_only"
+        Name of the dataset to load and process
+    """
     # load and clean data
     df = clean_data(dataset_name)
-    if 'Education' in df.columns:
+    if 'Education' or 'StockOptionLevel' in df.columns:
         df['Education'] = df['Education'].cat.codes  # convert ordinal to int
-    
+        df['StockOptionLevel'] = df['StockOptionLevel'].cat.codes
+
     X = df.drop(columns=['Attrition'])
     y = df['Attrition']
 
@@ -159,6 +299,9 @@ def run_pipeline(dataset_name="hr_only"):
     y_proba_ensemble = (y_proba_rf + y_proba_log) / 2
     y_pred_ensemble = (y_proba_ensemble >= 0.5).astype(int)
     
+    print("Cross-validating Ensemble (Full Models)...")
+    cross_validate_ensemble(rf, log_reg, X_train.data, y_train, cv=5)
+
     print("--- Ensemble (Full Models + SMOTE) ---")
     print("Accuracy:", accuracy_score(y_test, y_pred_ensemble))
     print("Precision:", precision_score(y_test, y_pred_ensemble))
@@ -187,144 +330,3 @@ def run_pipeline(dataset_name="hr_only"):
 
 if __name__ == "__main__":
     run_pipeline("hr_only")
-
-
-# # featuers + target
-# X = df.drop(columns=['Attrition'])
-# y = df['Attrition']
-
-# categorical_features = X.select_dtypes(include=["object", "category"]).columns
-# numeric_features = X.select_dtypes(include=["int64", "float64"]).columns
-
-
-# # full model using only hr data
-# X_train, X_test, y_train, y_test = train_test_split(
-#     X, y, test_size=0.2, random_state=42, stratify=y
-# )
-
-# preprocessor = ColumnTransformer(
-#     transformers=[
-#         ("num", StandardScaler(), numeric_features),
-#         ("cat", OneHotEncoder(drop="first", handle_unknown="ignore"), categorical_features)
-#     ]
-# )
-
-# # pipelines
-# rf = Pipeline([
-#     ("preprocessor", preprocessor),
-#     ("classifier", RandomForestClassifier(n_estimators=200, random_state=42, class_weight="balanced"))
-# ])
-
-# log_reg = Pipeline([
-#     ("preprocessor", preprocessor),
-#     ("classifier", LogisticRegression(max_iter=1000, class_weight="balanced"))
-# ])
-
-# rf.fit(X_train, y_train)
-# log_reg.fit(X_train, y_train)
-
-# def evaluate_model(model, X_test, y_test, model_name="Model"):
-#     y_pred = model.predict(X_test)
-#     y_proba = model.predict_proba(X_test)[:,1]
-#     print(f"{model_name}")
-#     print('Accuracy:', accuracy_score(y_test, y_pred))
-#     print('Precision:', precision_score(y_test, y_pred))
-#     print('Recall:', recall_score(y_test, y_pred))
-#     print('ROC-AUC:', roc_auc_score(y_test, y_proba))
-#     print(classification_report(y_test, y_pred))
-#     return y_proba
-
-# y_proba_rf = evaluate_model(rf, X_test, y_test, "Random Forest")
-# y_proba_log = evaluate_model(log_reg, X_test, y_test, "Logistic Regression")
-
-
-# result = permutation_importance(rf, X_train, y_train, n_repeats=10, random_state=42, scoring="roc_auc")
-# importances = pd.Series(result.importances_mean, index=X_train.columns).sort_values(ascending=False)
-# top_features = importances.head(10).index.tolist()
-# print("Top 10 features:\n", top_features)
-
-
-
-# # limited dataset
-# X_train_lim = X_train[top_features]
-# X_test_lim = X_test[top_features]
-
-# # identify numeric and categorical in limited features
-# categorical_lim = [f for f in top_features if f in categorical_features]
-# numeric_lim = [f for f in top_features if f in numeric_features]
-
-# preprocessor_lim = ColumnTransformer(
-#     transformers=[
-#         ("num", StandardScaler(), numeric_lim),
-#         ("cat", OneHotEncoder(drop="first", handle_unknown="ignore"), categorical_lim)
-#     ]
-# )
-
-# # limited pipeline
-# rf_lim = Pipeline([
-#     ("preprocessor", preprocessor_lim),
-#     ("classifier", RandomForestClassifier(n_estimators=200, random_state=42, class_weight="balanced"))
-# ])
-
-# log_reg_lim = Pipeline([
-#     ("preprocessor", preprocessor_lim),
-#     ("classifier", LogisticRegression(max_iter=1000, class_weight="balanced"))
-# ])
-
-# # train
-# rf_lim.fit(X_train_lim, y_train)
-# log_reg_lim.fit(X_train_lim, y_train)
-
-# # predict & evaluate limited models 
-# y_proba_rf_lim = evaluate_model(rf_lim, X_test_lim, y_test, "Random Forest (Limited)")
-# y_proba_log_lim = evaluate_model(log_reg_lim, X_test_lim, y_test, "Logistic Regression (Limited)")
-
-
-# # plot roc curves
-# os.makedirs("plots/model", exist_ok=True)
-# ax = plt.gca()
-
-# RocCurveDisplay.from_predictions(y_test, y_proba_rf, name="RF", ax=ax)
-# RocCurveDisplay.from_predictions(y_test, y_proba_log, name="Logistic", ax=ax)
-# RocCurveDisplay.from_predictions(y_test, y_proba_rf_lim, name="RF Limited", ax=ax)
-# RocCurveDisplay.from_predictions(y_test, y_proba_log_lim, name="Logistic Limited", ax=ax)
-
-# plt.plot([0,1],[0,1],"k--")
-# plt.title("ROC Curve: Full vs Limited Models")
-# plt.savefig("Plots/model/roc_curve_comparison.png", dpi=300, bbox_inches="tight")
-# plt.show()
-
-# # confusion matrix
-
-# # confusion matrix
-# # logistic regression
-# y_pred = log_reg.predict(X_test)
-# cm = confusion_matrix(y_test, y_pred, labels=[1, 0])
-# disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["Leave", "Stay"])
-# disp.plot(cmap=plt.cm.Blues)
-# plt.title("Confusion Matrix: Logistic Regression (Limited)")
-# plt.show()
-
-# # random forest
-# y_pred = rf.predict(X_test)
-# cm = confusion_matrix(y_test, y_pred, labels=[1, 0])
-# disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["Leave", "Stay"])
-# disp.plot(cmap=plt.cm.Blues)
-# plt.title("Confusion Matrix: Random Forest")
-# plt.show()
-
-# # logistic regression lim
-# y_pred = log_reg_lim.predict(X_test_lim)
-# cm = confusion_matrix(y_test, y_pred, labels=[1, 0])
-# disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["Leave", "Stay"])
-# disp.plot(cmap=plt.cm.Blues)
-# plt.title("Confusion Matrix: Logistic Regression (Limited)")
-# plt.show()
-
-# # random forest lim
-# y_pred = rf_lim.predict(X_test_lim)
-# cm = confusion_matrix(y_test, y_pred, labels=[1, 0])
-# disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["Leave", "Stay"])
-# disp.plot(cmap=plt.cm.Blues)
-# plt.title("Confusion Matrix: Random Forest (Limited)")
-# plt.show()
