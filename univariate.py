@@ -100,10 +100,10 @@ def qn_stats(df, col):
     plt.savefig(filename, dpi=300, bbox_inches='tight')
     plt.show()
 
-    # normality Test
+    # normality test
     stat, p=normaltest(df[col])
     print(f"\nD'Agostino and Pearson Test:")
-    print(f" Statistic = {stat:.4f}, p-value = {p:.4f}")
+    print(f"Statistic = {stat:.4f}, p-value = {p:.4f}")
     if p < 0.05: # 95% confidence
         print("Data is not normally distributed.")
     else:
