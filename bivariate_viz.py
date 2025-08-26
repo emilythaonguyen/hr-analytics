@@ -29,7 +29,7 @@ def bivar_numeric_plot(df, variables, target='Attrition'):
         print(f"\nStatistics for {var} by {target}:")
         print(df.groupby(target)[var].describe())
         plt.figure(figsize=(6,4))
-        sns.boxplot(x=df[target], y=df[var], palette='rainbow')
+        sns.boxplot(x=df[target], y=df[var], hue=df[target], palette='rainbow')
         plt.title(f'{var} Distribution by {target}')
         plt.tight_layout()
         filename = os.path.join('plots/boxplots', f'{var}_by_{target}_boxplot.png')

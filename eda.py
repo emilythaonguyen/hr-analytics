@@ -13,8 +13,7 @@ def run_eda(dataset_type='all'):
         The name of which cleaned dataset we want to do eda on
     """
     # load the dataset
-    df = clean_data(dataset_type)
-
+    df = clean_data(dataset_type)       
     for col in df.columns:
         # datetime columns
         if pd.api.types.is_datetime64_any_dtype(df[col]):
