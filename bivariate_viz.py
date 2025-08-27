@@ -157,7 +157,7 @@ def bivar_binary_plot(df, variables, target='Attrition'):
         plt.show()
         plt.close()
 
-def bivar_datetime_plot(df, variables, target='Attrition', freq='Y'):
+def bivar_datetime_plot(df, variables, target='Attrition', freq='YE'):
     """
     Generate line plots for datetime variables showing 
     mean target over time.
@@ -171,7 +171,7 @@ def bivar_datetime_plot(df, variables, target='Attrition', freq='Y'):
     target : str
         Binary target column name
     freq : str
-        Frequency to aggregate by ('Y' = year, 'M' = month, etc.)
+        Frequency to aggregate by ('YE' = year, 'M' = month, etc.)
     """
     # make directory
     os.makedirs('plots/lineplots', exist_ok=True)

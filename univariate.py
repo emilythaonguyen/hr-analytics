@@ -154,7 +154,7 @@ def dt_stats(df, col):
     os.makedirs(dir, exist_ok=True)
     sns.color_palette(palette='Paired')
     # yearly counts - time series plot
-    dt_yearly = df.set_index(col).resample('Y').size()
+    dt_yearly = df.set_index(col).resample('YE').size()
     plt.figure(figsize=(14, 7))
     dt_yearly.plot(marker='o')
     plt.title(f"Yearly Count of {col}")

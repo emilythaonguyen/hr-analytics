@@ -69,6 +69,6 @@ print(results_perf)
 # hr only
 for _, row in results_hr.iterrows():
     interpret_results(row['Variable'], row['Test'], row['Statistic/Corr'], row['p-value'])
-# performance only
+# hr + performance
 for _, row in results_perf.iterrows():
     interpret_results(row['Variable'], row['Test'], row['Statistic/Corr'], row['p-value'])
