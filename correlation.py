@@ -5,6 +5,7 @@ from bivariate_viz import bivar_numeric_plot, bivar_categorical_plot, bivar_spea
 from data_cleaning import clean_data
 
 
+
 # load the data
 df = clean_data('all')
 

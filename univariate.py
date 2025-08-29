@@ -5,7 +5,7 @@ from scipy.stats import skew, kurtosis, normaltest, probplot
 import os
 
 # set the style for all plots
-sns.set(style='whitegrid', palette='hls')
+sns.set(style='whitegrid', palette='tab20c')
 plt.rcParams['figure.figsize'] = (10, 6)
 
 # function to print out summary for qualitative variables 
@@ -40,7 +40,7 @@ def ql_stats(df, col):
     os.makedirs(dir, exist_ok=True)
     # countplot
     plt.figure(figsize=(12, 6))
-    sns.countplot(x=col, data=df)
+    sns.countplot(x=col, data=df, hue=col)
     if col in ['Ethnicity', 'EducationField', 'JobRole']:
         # rotate to make space for x labels
         plt.xticks(rotation=45, ha='right')
@@ -152,7 +152,7 @@ def dt_stats(df, col):
     # make directory for time series plot
     dir = "plots/time_series_plots"
     os.makedirs(dir, exist_ok=True)
-    sns.color_palette(palette='Paired')
+    sns.color_palette(palette='tab20c')
     # yearly counts - time series plot
     dt_yearly = df.set_index(col).resample('YE').size()
     plt.figure(figsize=(14, 7))

@@ -29,7 +29,7 @@ def bivar_numeric_plot(df, variables, target='Attrition'):
         print(f"\nStatistics for {var} by {target}:")
         print(df.groupby(target)[var].describe())
         plt.figure(figsize=(6,4))
-        sns.boxplot(x=df[target], y=df[var], hue=df[target], palette='rainbow')
+        sns.boxplot(x=df[target], y=df[var], hue=df[target], palette=["#F4445E", "#50D0FA"])
         plt.title(f'{var} Distribution by {target}')
         plt.tight_layout()
         filename = os.path.join('plots/boxplots', f'{var}_by_{target}_boxplot.png')
@@ -43,14 +43,14 @@ def bivar_numeric_plot(df, variables, target='Attrition'):
         plt.suptitle('Pairplot of Numeric Variables by Attrition', y=1.02)
         filename = os.path.join('plots/pairplots', 'Pairplot.png')
         plt.savefig(filename, dpi=300, bbox_inches="tight")
-        plt.show(block=False)
+        plt.show()
         plt.close()
 
     # correlation heatmap
     if variables:
         plt.figure(figsize=(12,8))
         corr = df[variables + [f'{target}']].corr()
-        sns.heatmap(corr, annot=True, cmap='bwr', fmt='.2f')
+        sns.heatmap(corr, annot=True, cmap='coolwarm_r', fmt='.2f')
         plt.title('Correlation Heatmap')
         filename = os.path.join('plots/heatmaps', 'Heatmap.png')
         plt.savefig(filename, dpi=300, bbox_inches='tight')
@@ -81,7 +81,7 @@ def bivar_categorical_plot(df, variables, target='Attrition'):
         print(df.groupby(var)[target].value_counts().unstack().fillna(0))
         cross_tab = pd.crosstab(df[var], df[target])
         cross_tab_pct = cross_tab.div(cross_tab.sum(1), axis=0)
-        cross_tab_pct.plot(kind='bar', stacked=True, figsize=(10, 6), colormap='tab20c')
+        cross_tab_pct.plot(kind='bar', stacked=True, figsize=(10, 6), color=["#F4445E", "#50D0FA"])
         plt.ylabel('Proportion')
         plt.title(f'Attrition by {var}')
         plt.legend(title=target)
@@ -147,7 +147,7 @@ def bivar_binary_plot(df, variables, target='Attrition'):
         ct = df.groupby(var)[target].mean()
 
         plt.figure(figsize=(5,4))
-        ct.plot(kind='bar', color='skyblue')
+        ct.plot(kind='bar', color='#50D0FA')
         plt.ylabel(f'Mean {target}')
         plt.xlabel(var)
         plt.title(f'{target} Rate by {var}')
