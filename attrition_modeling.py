@@ -114,11 +114,13 @@ def evaluate_model(model, X_test, y_test, name="Model"):
     print("ROC-AUC:", roc_auc_score(y_test, y_proba))
     print(classification_report(y_test, y_pred))
     
+    os.makedirs("plots/model", exist_ok=True)
     # Confusion matrix
     cm = confusion_matrix(y_test, y_pred, labels=[1,0])
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["Leave","Stay"])
     disp.plot(cmap=plt.cm.Blues)
     plt.title(f"Confusion Matrix: {name}")
+    plt.savefig(f'plots/model/{name}_confusion_matrix', dpi=300, bbox_inches='tight')
     plt.show()
     
     return y_proba
@@ -313,6 +315,7 @@ def run_pipeline(dataset_name="hr_only"):
     disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=["Leave","Stay"])
     disp.plot(cmap=plt.cm.Blues)
     plt.title("Confusion Matrix: Ensemble + SMOTE")
+    plt.savefig('plots/model/ensemble.png', dpi=300)
     plt.show()
 
     # roc curves
