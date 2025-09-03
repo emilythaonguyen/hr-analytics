@@ -78,7 +78,7 @@ def bivar_categorical_plot(df, variables, target='Attrition'):
     # stacked bar plot for nominal variables
     for var in variables:
         print(f"\nStatistics for {var} by {target}:")
-        print(df.groupby(var)[target].value_counts().unstack().fillna(0))
+        print((df.groupby(var, observed=True)[target].value_counts(normalize=True).unstack().fillna(0) * 100).round(2))
         cross_tab = pd.crosstab(df[var], df[target])
         cross_tab_pct = cross_tab.div(cross_tab.sum(1), axis=0)
         cross_tab_pct.plot(kind='bar', stacked=True, figsize=(10, 6), color=["#F4445E", "#50D0FA"])
@@ -142,7 +142,7 @@ def bivar_binary_plot(df, variables, target='Attrition'):
     # bar plot
     for var in variables:
         print(f"\nStatistics for {var} by {target}:")
-        print(df.groupby(var)[target].agg(['mean', 'count', 'std']))
+        print(df.groupby(var, observed=True)[target].agg(['mean', 'count', 'std']))
         
         ct = df.groupby(var)[target].mean()
 
